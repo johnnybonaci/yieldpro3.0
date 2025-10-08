@@ -26,7 +26,6 @@ class AccessTokenController extends Controller
         $token = $this->access_token_repository->basicToken($request);
         if ($token) {
             $accessToken = $this->access_token_repository->getPersonalAccessToken($token);
-
             if ($accessToken) {
                 if ($accessToken->can('token:read')) {
                     $this->access_token_repository->deleteAccessToken($accessToken);
