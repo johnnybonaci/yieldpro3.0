@@ -12,7 +12,9 @@ class AccessTokenController extends Controller
     /**
      * __construct.
      */
-    public function __construct(private AccessTokenRepository $access_token_repository) {}
+    public function __construct(private AccessTokenRepository $access_token_repository)
+    {
+    }
 
     /**
      * Summary of token.
