@@ -1,8 +1,32 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
+use App\Console\Commands\Leads\ImportTrackDriveData;
+use App\Console\Commands\Leads\ReprocessFailedCalls;
+use App\Console\Commands\Leads\ImportTrackDriveLeads;
+use App\Console\Commands\Leads\ReprocessFailedTranscript;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+// Programación de comandos
+Schedule::command(ImportTrackDriveData::class)
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->runInBackground();
+
+Schedule::command(ImportTrackDriveLeads::class, [env('TRACKDRIVE_PROVIDER_ID')])
+    ->hourly()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->runInBackground();
+
+Schedule::command(ReprocessFailedCalls::class)
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->runInBackground();
+
+Schedule::command(ReprocessFailedTranscript::class)
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->runInBackground();

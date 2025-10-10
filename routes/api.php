@@ -14,7 +14,6 @@ use App\Http\Controllers\Api\Auth\AccessTokenController;
 Route::post('/token', [AccessTokenController::class, 'token']);
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/tokens', [AccessTokenController::class, 'index']);
     Route::get('/user', function (Request $request) {
         return $request->user();
     });

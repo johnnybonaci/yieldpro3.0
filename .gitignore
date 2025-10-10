@@ -33,3 +33,5 @@ ray.php
 laravel-security-audit.sh
 psalm.xml
 phpstan.neon
+.scannerwork
+sonar-project.properties

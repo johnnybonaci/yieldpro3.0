@@ -2,10 +2,15 @@
 
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use App\Repositories\LogRepository;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use App\Services\Leads\ValidatedService;
+use App\Repositories\Leads\PubRepository;
+use App\Repositories\Leads\LeadMetricRepository;
 
 /**
  * Summary of __toService.
@@ -108,6 +113,13 @@ function __toJob(Model $model, $room = false): array
     $response['model'] = $model;
 
     return $response;
+}
+/**
+ * Summary of __toClass.
+ */
+function __toClass(string $string): mixed
+{
+    return new $string(new LogRepository(new ValidatedService(new PubRepository(), new LeadMetricRepository(), new Request())));
 }
 
 /**
