@@ -52,8 +52,6 @@ class TranscriptionJob implements ShouldQueue
 
         $recording = $openAIService->analyze($recording);
 
-        // UpdateCallJob::dispatch($recording->id)->onQueue('performance');
-
         $this->notify($this->user, $recording, array_merge([
             'date_start' => Date::parse($recording->convertion->created_at)->format('Y-m-d'),
             'date_end' => Date::parse($recording->convertion->created_at)->format('Y-m-d'),
@@ -102,8 +100,6 @@ class TranscriptionJob implements ShouldQueue
                 'date_end' => Date::parse($recording->convertion->created_at)->format('Y-m-d'),
                 'status' => $recording->status->value,
             ], $this->data));
-
-            // UpdateCallJob::dispatch($recording->id)->onQueue('performance');
         }
     }
 }

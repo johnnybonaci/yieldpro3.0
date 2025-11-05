@@ -4,7 +4,6 @@ namespace App\Console\Commands\Leads;
 
 use App\Models\Leads\Recording;
 use Illuminate\Console\Command;
-use App\Jobs\Leads\UpdateCallJob;
 use App\Enums\TranscriptStatusEnum;
 use App\Jobs\Leads\TranscriptionJob;
 use Illuminate\Support\Facades\Auth;
@@ -50,8 +49,6 @@ class ReprocessFailedCalls extends Command
                     'date_start' => $recording->date_history,
                     'date_end' => $recording->date_history,
                 ], Auth::loginUsingId(23, $remember = true))->onQueue('transcript');
-
-                // UpdateCallJob::dispatchSync($recording->id);
             });
 
         $this->info('Reprocessing failed calls completed.');

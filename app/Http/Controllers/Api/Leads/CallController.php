@@ -13,7 +13,6 @@ use App\Models\Leads\Provider;
 use App\Models\Leads\Recording;
 use App\Models\Leads\Convertion;
 use App\Models\Leads\LeadMetric;
-use App\Jobs\Leads\UpdateCallJob;
 use App\Exports\Leads\CallsExport;
 use Spatie\Permission\Models\Role;
 use App\Enums\TranscriptStatusEnum;
@@ -238,7 +237,6 @@ class CallController extends Controller
             'insurance' => $request->get('insurance_value'),
             'multiple' => json_encode($multiple),
         ]);
-        // UpdateCallJob::dispatchSync($record->id);
 
         return json_encode(['status' => 200]);
     }
@@ -325,7 +323,6 @@ class CallController extends Controller
 
         TranscriptionJob::dispatch($data, auth()->user())->onQueue('transcript');
         $record->update(['status' => TranscriptStatusEnum::TRANSCRIBING->value]);
-        // UpdateCallJob::dispatchSync($record->id);
 
         return json_encode(['status' => 200]);
     }
@@ -355,7 +352,6 @@ class CallController extends Controller
         ]);
 
         TranscriptionJob::dispatch($data, auth()->user())->onQueue('transcript');
-        // UpdateCallJob::dispatchSync($record->id);
 
         return json_encode(['status' => 200]);
     }
