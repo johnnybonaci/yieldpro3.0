@@ -3,7 +3,6 @@
 namespace App\Repositories\Leads;
 
 use App\Models\Leads\Lead;
-use App\Models\Leads\BotLeads;
 use App\Models\Leads\JornayaLead;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
@@ -55,18 +54,5 @@ class JornayaLeadRepository
             ->whereBetween('leads.date_history', [$date_start, $date_end])
             ->filterFields()
             ->sortsFields('leads.date_history');
-    }
-
-    /**
-     * Return Totals Leads from date start & date end.
-     */
-    public function getJornayaBot(string $date_start, string $date_end): Builder
-    {
-        $col = ['bot_leads.phone as phone_bot', 'bot_leads.first_name', 'bot_leads.last_name', 'bot_leads.email', 'bot_leads.type', 'bot_leads.zip_code', 'bot_leads.state', 'bot_leads.ip', 'bot_leads.universal_lead_id', 'bot_leads.trusted_form', 'bot_leads.tries', 'bot_leads.date_history', 'bot_leads.created_at', 'bot_leads.updated_at'];
-
-        return BotLeads::select($col)
-            ->whereBetween('bot_leads.date_history', [$date_start, $date_end])
-            ->filterFields()
-            ->sortsFields('bot_leads.date_history');
     }
 }

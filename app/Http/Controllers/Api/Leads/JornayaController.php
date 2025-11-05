@@ -46,37 +46,4 @@ class JornayaController extends Controller
             'message' => 'The provided IP address is invalid.',
         ], 422);
     }
-
-    /**
-     * Display a listing of the resource.
-     */
-    public function listBot(Request $request)
-    {
-        $date_start = $request->get('date_start', now()->format('Y-m-d'));
-        $date_end = $request->get('date_end', now()->format('Y-m-d'));
-
-        $page = $request->get('page', 1);
-        $size = $request->get('size', 20);
-        $leads = $this->jornaya_lead_repository->getJornayaBot($date_start, $date_end);
-        $fraud = $this->jornaya_lead_repository->getJornayaBot($date_start, $date_end);
-        $total_leads = $leads->count();
-        $clean = $leads->whereJsonContains('ip->ip_quality', true)->count();
-        $fraud = $fraud->whereJsonContains('ip->ip_quality', false)->count();
-        $proccessed = $clean + $fraud;
-        $custom = collect(['totals' => [
-            'total_leads' => $total_leads,
-            'total_proccessed' => $proccessed,
-            'total_clean_' => round($clean / $proccessed * 100, 2) . ' %',
-            'total_clean' => $clean,
-            'total_fraud_' => round($fraud / $proccessed * 100, 2) . ' %',
-            'total_fraud' => $fraud,
-        ]]);
-        $leadss = $this->jornaya_lead_repository->getJornayaBot($date_start, $date_end);
-
-        $result = $leadss->paginate($size, ['*'], 'page', $page);
-
-        $data = $custom->merge($result);
-
-        return $data;
-    }
 }

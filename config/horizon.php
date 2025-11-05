@@ -180,7 +180,7 @@ return [
 
     'default' => [
         'connection' => 'redis',
-        'queue' => ['botleads', 'whisper', 'transcript', 'broadcasts', 'track_drive', 'keh_call', 'tru_alliant_call', 'convoso_call'],
+        'queue' => ['whisper', 'transcript', 'broadcasts', 'track_drive', 'keh_call', 'tru_alliant_call', 'convoso_call'],
         'balance' => 'auto',
         'processes' => 40,
         'tries' => 1,
@@ -190,7 +190,7 @@ return [
         'production' => [
             'default' => [
                 'connection' => 'redis',
-                'queue' => ['botleads', 'whisper', 'transcript', 'broadcasts', 'track_drive', 'keh_call', 'tru_alliant_call', 'convoso_call'],
+                'queue' => ['whisper', 'transcript', 'broadcasts', 'track_drive', 'keh_call', 'tru_alliant_call', 'convoso_call'],
                 'balance' => 'auto',
                 'processes' => 40,
                 'tries' => 1,

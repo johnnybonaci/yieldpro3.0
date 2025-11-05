@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Models\Leads\Pub;
 use App\Traits\FiltersTrait;
 use Laravel\Sanctum\HasApiTokens;
-use Laravel\Jetstream\HasProfilePhoto;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Builder;

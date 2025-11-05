@@ -30,7 +30,6 @@ class CleanAndRetryFailedJobs extends Command
     public function handle()
     {
         // Delete records from the failed_jobs table for specific queues
-        DB::table('failed_jobs')->where('queue', 'like', '%bot%')->delete();
         DB::table('failed_jobs')->where('queue', 'like', '%whisper%')->delete();
         DB::table('failed_jobs')->where('queue', 'like', '%transcript%')->delete();
 

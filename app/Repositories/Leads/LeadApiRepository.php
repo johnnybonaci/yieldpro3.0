@@ -2,25 +2,19 @@
 
 namespace App\Repositories\Leads;
 
-use Exception;
 use Carbon\Carbon;
 use App\Models\Leads\Pub;
 use App\Models\Leads\Sub;
 use App\Models\Leads\Lead;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use App\Models\Leads\BotLeads;
 use App\Models\Leads\Convertion;
 use App\Models\Leads\HistoryLeads;
 use App\Models\Leads\LeadPageView;
 use App\Models\Leads\TrackingLead;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
 use App\Models\Leads\DuplicateLeads;
-use Illuminate\Support\Facades\Http;
-use App\Jobs\Leads\UpdateLiveLeadJob;
 use Illuminate\Support\Facades\Cache;
-use App\Models\Leads\BotLeadsDuplicate;
 use Illuminate\Database\Eloquent\Model;
 use App\Repositories\EloquentRepository;
 use Illuminate\Database\Eloquent\Builder;
@@ -51,7 +45,6 @@ class LeadApiRepository extends EloquentRepository
     {
         $chunk = $data->toArray();
         $lead = Lead::FirstOrCreate(['phone' => $chunk['phone']], $chunk);
-        // UpdateLiveLeadJob::dispatch($lead->phone)->onQueue('performance');
         unset($chunk['created_time']);
         unset($chunk['sub_id2']);
         unset($chunk['sub_id3']);
@@ -126,52 +119,6 @@ class LeadApiRepository extends EloquentRepository
         }
 
         return $response;
-    }
-
-    /**
-     * Summary of create.
-     */
-    public function createBot(Collection $data): array
-    {
-        $response['status'] = false;
-
-        $chunk = $data->toArray();
-        $chunk['pub_id'] = $chunk['sub_id5'];
-        $chunk['sub_id5'] = Str::random(8) . now()->format('YmdHis');
-
-        $lead = BotLeads::FirstOrCreate(['phone' => $chunk['phone']], $chunk);
-        $response['create'] = $lead->wasRecentlyCreated ? true : false;
-        if ($lead) {
-            $response['status'] = true;
-            $response['code'] = $chunk['sub_id5'];
-        }
-
-        return $response;
-    }
-
-    /**
-     * Summary of create.
-     */
-    public function jobBotDuplicate(Collection $data)
-    {
-        $chunk = $data->toArray();
-        $chunk['pub_id'] = $chunk['sub_id5'];
-        BotLeadsDuplicate::create($chunk);
-    }
-
-    /**
-     * Process Bot Job.
-     */
-    public function jobBot(Collection $data): void
-    {
-        try {
-            Http::timeout(180)->withToken('194634|Vuhts6QFq02zOIaq6NytdpgyHc8FpepWXel4nRao12e0290b')
-                ->retry(3, 200)->post('http://54.215.88.120/api/v1/leads/botleads', $data->toArray())->throw();
-        } catch (Exception $e) {
-            Log::channel('bot')->error($e->getMessage());
-
-            Log::channel('bot')->info('Could not send bot lead:', $data->toArray());
-        }
     }
 
     /**
@@ -939,69 +886,6 @@ class LeadApiRepository extends EloquentRepository
         unset($totals[$avg]);
 
         return $totals;
-    }
-
-    public function pageviews(string $date_start, string $date_end): PersonalCollection
-    {
-        $query1 = BotLeads::select('date_history', 'type', 'pub_id')
-            ->selectRaw('count(phone) as leads')
-            ->whereBetween('date_history', [$date_start, $date_end])
-            ->filterFields()
-            ->groupBy('date_history', 'type', 'pub_id')
-            ->get();
-
-        $query2 = BotLeadsDuplicate::select('date_history', 'type', 'pub_id')
-            ->selectRaw('count(phone) as leads_dup')
-            ->selectRaw('count(distinct phone) as unique_leads')
-            ->whereBetween('date_history', [$date_start, $date_end])
-            ->filterFields()
-            ->groupBy('date_history', 'type', 'pub_id')
-            ->get();
-
-        $result = $query1->map(function ($item) use ($query2) {
-            $matchingItem = $query2->firstWhere(function ($query2Item) use ($item) {
-                return $query2Item->date_history === $item->date_history
-                    && $query2Item->type === $item->type
-                    && $query2Item->pub_id === $item->pub_id;
-            });
-
-            $leads = $item->leads;
-            $leads_dup = $matchingItem ? $matchingItem->leads_dup : 0;
-            $uniqueLeads = $matchingItem ? $matchingItem->unique_leads : 0;
-
-            return [
-                'date_history' => $item->date_history,
-                'type' => $item->type,
-                'pub_id' => $item->pub_id,
-                'leads' => $leads,
-                'leads_dup' => $leads_dup,
-                'unique_leads' => $uniqueLeads,
-                'total_leads' => $leads + $leads_dup,
-            ];
-        });
-
-        $query2Missing = $query2->filter(function ($item) use ($query1) {
-            return !$query1->contains(function ($query1Item) use ($item) {
-                return $query1Item->date_history === $item->date_history
-                    && $query1Item->type === $item->type
-                    && $query1Item->pub_id === $item->pub_id;
-            });
-        })->map(function ($item) {
-            return [
-                'date_history' => $item->date_history,
-                'type' => $item->type,
-                'pub_id' => $item->pub_id,
-                'leads' => 0,
-                'leads_dup' => $item->leads_dup,
-                'unique_leads' => $item->unique_leads,
-                'total_leads' => 0 + $item->leads_dup,
-            ];
-        });
-
-        $finalResult = $result->merge($query2Missing);
-        $finalResult = $finalResult->sortBy('pub_id')->values();
-
-        return new PersonalCollection($finalResult);
     }
 
     public function pagewidgets(string $date_start, string $date_end): array

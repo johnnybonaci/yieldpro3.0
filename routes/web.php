@@ -71,7 +71,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     |--------------------------------------------------------------------------
     */
     Route::group(['middleware' => ['permission:roles']], function () {
-        Route::get('users/roles', fn() => view('backend.users.role-update'))->name('role.edit');
+        Route::get('users/roles', fn () => view('backend.users.role-update'))->name('role.edit');
     });
 
     Route::group(['middleware' => ['permission:users']], function () {

@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\Leads\CallController;
 use App\Http\Controllers\Api\Leads\LeadController;
 use App\Http\Controllers\Api\Roles\RoleController;
 use App\Http\Controllers\Api\Leads\JornayaController;
-use App\Http\Controllers\Api\Leads\LeadBotController;
 use App\Http\Controllers\Api\Leads\ListPubController;
 use App\Http\Controllers\Api\Leads\ListSubController;
 use App\Http\Controllers\Api\Settings\PubsController;
@@ -86,7 +85,6 @@ Route::middleware('auth:sanctum')->prefix('data')->group(function () {
 
     // Reports and metrics
     Route::get('jornaya', [JornayaController::class, 'index'])->name('jornaya.api.index');
-    Route::get('jornayabot', [JornayaController::class, 'listBot'])->name('jornayabot.api.index');
     Route::get('campaign', [CampaignController::class, 'index'])->name('lead.campaign.api.index');
     Route::get('campaign-mn', [CampaignController::class, 'campaign_mn'])->name('lead.campaign_mn.api.index');
     Route::get('users', [UserApiController::class, 'index'])->name('users.api.index');
@@ -134,8 +132,6 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
     Route::post('data', [LeadController::class, 'store'])->name('lead.api.store');
     Route::post('/mediaalpha', [MediaAlphaController::class, 'submit'])->name('lead.api.mediaalpha');
     Route::post('update', [LeadController::class, 'update'])->name('lead.api.update');
-    Route::post('bot', [LeadBotController::class, 'store'])->name('leadbot.api.store');
-    Route::post('bot/update', [LeadBotController::class, 'update'])->name('leadbot.api.update');
 });
 
 /*

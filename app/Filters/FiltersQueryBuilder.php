@@ -58,7 +58,6 @@ class FiltersQueryBuilder
                 $filter['field'] = match ($filter['field']) {
                     'buyers' => 'buyers.name',
                     'phone' => $table . '.phone',
-                    'phone_bot' => 'bot_leads.phone',
                     'user_name' => 'users.name',
                     'role_name' => 'roles.name',
                     'vendors' => 'pub_lists.name',
