@@ -272,15 +272,6 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
 
 /*
 |--------------------------------------------------------------------------
-| IP Validation
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('ip')->group(function () {
-    Route::post('validate', [JornayaController::class, 'iqQuality'])->name('jornaya.api.iqQuality');
-});
-
-/*
-|--------------------------------------------------------------------------
 | API TESTS
 |--------------------------------------------------------------------------
 */
