@@ -208,7 +208,7 @@ class TrackDriveService extends ImportService implements PostingServiceInterface
             $shouldTranscribe = $status['buyer_id'] && in_array($buyerYP, $enabledBuyerIds);
 
             if ($command && $shouldTranscribe && $convertions['durations'] > env('DURATION_TRANSCRIPTION', 60)) {
-                $user = auth()->user() ?? Auth::loginUsingId(23, $remember = true);
+                $user = auth()->user() ?? Auth::loginUsingId(23, true);
                 TranscriptionJob::dispatch(['id' => $caller_id, 'type' => $convertions['offer_id']], $user)->onQueue('whisper');
                 $status_td['status_td'] = $lead['status'];
                 $status_td['hold_duration'] = $lead['hold_duration'];

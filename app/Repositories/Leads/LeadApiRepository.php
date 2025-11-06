@@ -128,29 +128,25 @@ class LeadApiRepository extends EloquentRepository
     {
         $setup = $pub_id->get('setup');
         $string = __toSingularModel($model);
-        if (!$setup[$string]['type']) {
-            return __toCheckSources($setup, $model);
-        } else {
-            switch ($setup[$string]['type']) {
-                case 'all':
-                    return __toCheckSources($setup, $model);
-                case 'interleave':
-                    if (__toCheckSources($setup, $model)) {
-                        $interleave = $pub_id->get('interleave');
-                        $interleave[$string] = $interleave[$string] ?? 0;
-                        if ($model->id !== $interleave[$string]) {
-                            $interleave[$string] = $model->id;
-                            $this->updateById($pub_id->get('id'), new Pub(), ['interleave' => $interleave]);
+        $result = false;
+        $type = $setup[$string]['type'] ?? null;
 
-                            return true;
-                        }
-                    }
+        if (!$type || $type === 'all') {
+            $result = __toCheckSources($setup, $model);
+        } elseif ($type === 'interleave') {
+            if (__toCheckSources($setup, $model)) {
+                $interleave = $pub_id->get('interleave');
+                $interleave[$string] = $interleave[$string] ?? 0;
 
-                    return false;
-                default:
-                    return false;
+                if ($model->id !== $interleave[$string]) {
+                    $interleave[$string] = $model->id;
+                    $this->updateById($pub_id->get('id'), new Pub(), ['interleave' => $interleave]);
+                    $result = true;
+                }
             }
         }
+
+        return $result;
     }
 
     /**
@@ -707,7 +703,6 @@ class LeadApiRepository extends EloquentRepository
                 $array['cpl'] = $data->sum('cpl') + $item['cpl'];
                 $array['cpl_calls'] = $data->sum('cpl');
                 $array['cpl_leads'] = $item['cpl'];
-                $array['cpl'] = $data->sum('cpl') + $item['cpl'];
                 $array['revenue'] = $data->sum('revenue');
                 $array['answered'] = $data->sum('answered');
                 $array['calls'] = $data->sum('calls');
@@ -756,9 +751,8 @@ class LeadApiRepository extends EloquentRepository
 
         $model = request()->input('url_switch') == 'tracking-campaign' ? new TrackingLead() : new Lead();
         $table = $model->getTable();
-        // $columns_cpl = $view_by . ' as view_by,subs.sub_id, pubs.pub_list_id, 1 as leads,CONCAT(subs.sub_id,"",pubs.pub_list_id) as sub_pub,campaign_name_id,pub_lists.name as vendors_yp,' . $table . '.type';
+
         $columns_cpl = $view_by . ' as view_by,subs.sub_id, pubs.pub_list_id, 1 as leads,CONCAT(leads.campaign_name_id,"",leads.sub_id3,"",leads.pub_id,"",ifnull(convertions.traffic_source_id,66666)) as cm_pub,campaign_name_id,pub_lists.name as vendors_yp,' . $table . '.type,leads.sub_id3,leads.sub_id2,leads.sub_id4,ifnull(convertions.traffic_source_id,66666) as traffic_source_id,leads.pub_id';
-        $group_by = $view_by == 'subs.sub_id' ? [$table . '.phone', 'subs.sub_id', 'pubs.pub_list_id'] : [$table . '.phone', $view_by];
         $group_by = ['leads.phone', 'leads.campaign_name_id', 'leads.sub_id3', 'leads.pub_id', 'convertions.traffic_source_id'];
 
         return Convertion::selectRaw($columns_cpl)
@@ -960,7 +954,6 @@ class LeadApiRepository extends EloquentRepository
                 $array['cpl'] = $data->sum('cpl') + $item['cpl'];
                 $array['cpl_calls'] = $data->sum('cpl');
                 $array['cpl_leads'] = $item['cpl'];
-                $array['cpl'] = $data->sum('cpl') + $item['cpl'];
                 $array['revenue'] = $data->sum('revenue');
                 $array['calls'] = $data->sum('calls');
                 $array['converted'] = $data->sum('converted');

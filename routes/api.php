@@ -14,7 +14,6 @@ use App\Http\Controllers\Api\Settings\BuyerController;
 use App\Http\Controllers\Api\Settings\OfferController;
 use App\Http\Controllers\Api\Settings\PubIdController;
 use App\Http\Controllers\Api\Leads\PhoneRoomController;
-use App\Http\Controllers\Api\Leads\MediaAlphaController;
 use App\Http\Controllers\Api\Leads\ListPartnerController;
 use App\Http\Controllers\Api\Leads\LeadPageViewController;
 use App\Http\Controllers\Api\Leads\ListCampaignController;
@@ -130,7 +129,6 @@ Route::middleware('auth:sanctum')->prefix('data')->group(function () {
 */
 Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('leads')->group(function () {
     Route::post('data', [LeadController::class, 'store'])->name('lead.api.store');
-    Route::post('/mediaalpha', [MediaAlphaController::class, 'submit'])->name('lead.api.mediaalpha');
     Route::post('update', [LeadController::class, 'update'])->name('lead.api.update');
 });
 

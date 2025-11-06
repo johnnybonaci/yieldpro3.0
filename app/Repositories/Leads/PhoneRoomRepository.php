@@ -63,16 +63,14 @@ class PhoneRoomRepository extends EloquentRepository
             $response['hopper_priority'] = '99';
             $response['hopper_local_call_time_check'] = 'Y';
         }
-        if (is_array($data['data'])) {
-            if (!empty($data['data']['dob'])) {
-                $dob = date_parse($data['data']['dob']);
+        if (is_array($data['data']) && !empty($data['data']['dob'])) {
+            $dob = date_parse($data['data']['dob']);
 
-                if ($dob && isset($dob['year'], $dob['month'], $dob['day']) && checkdate($dob['month'], $dob['day'], $dob['year'])) {
-                    try {
-                        $response['date_of_birth'] = Carbon::createFromDate($dob['year'], $dob['month'], $dob['day'])->format('Y-m-d');
-                    } catch (Exception $e) {
-                        Log::error('DIALER:Error al crear la fecha de nacimiento: ' . $e->getMessage());
-                    }
+            if ($dob && isset($dob['year'], $dob['month'], $dob['day']) && checkdate($dob['month'], $dob['day'], $dob['year'])) {
+                try {
+                    $response['date_of_birth'] = Carbon::createFromDate($dob['year'], $dob['month'], $dob['day'])->format('Y-m-d');
+                } catch (Exception $e) {
+                    Log::error('DIALER:Error al crear la fecha de nacimiento: ' . $e->getMessage());
                 }
             }
         }

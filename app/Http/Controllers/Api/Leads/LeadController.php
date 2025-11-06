@@ -90,7 +90,7 @@ class LeadController extends Controller
         $page = $request->get('page', 1);
         $size = $request->get('size', 20);
 
-        $result = $history_leads->paginate($size, 'page', $page, $history_leads->count());
+        $result = $history_leads->paginate($size, $page, $history_leads->count(), 'page');
 
         return $result;
     }
@@ -105,7 +105,7 @@ class LeadController extends Controller
         $page = $request->get('page', 1);
         $size = $request->get('size', 20);
 
-        $result = $history_leads->paginate($size, 'page', $page, $history_leads->count());
+        $result = $history_leads->paginate($size, $page, $history_leads->count(), 'page');
 
         return $result;
     }

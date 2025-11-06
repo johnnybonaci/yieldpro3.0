@@ -61,17 +61,6 @@ class MediaAlphaService
 
             $responseData = $response->json();
 
-            if ($phone) {
-                MediaAlphaWebhookService::storePingResponse(
-                    $phone,
-                    $this->config->placement_id,
-                    $responseData,
-                    !$response->successful(),
-                    $pingData['data']['leadid_id'] ?? null,
-                    $requestInfo
-                );
-            }
-
             return [
                 'success' => $response->successful(),
                 'data' => $responseData,
@@ -83,18 +72,6 @@ class MediaAlphaService
         } catch (Exception $e) {
             $endTime = microtime(true);
             $responseTime = round(($endTime - $startTime) * 1000, 3);
-
-            // Save error to database with request info
-            if ($phone) {
-                MediaAlphaWebhookService::storePingResponse(
-                    $phone,
-                    $this->config->placement_id,
-                    ['error' => $e->getMessage(), 'response_time_ms' => $responseTime],
-                    true,
-                    $pingData['data']['leadid_id'] ?? null,
-                    $requestInfo
-                );
-            }
 
             return [
                 'success' => false,
@@ -199,16 +176,6 @@ class MediaAlphaService
 
             $responseData = $response->json();
 
-            // Save response to database
-            if ($phone) {
-                MediaAlphaWebhookService::storePostResponse(
-                    $phone,
-                    $responseData,
-                    !$response->successful(),
-                    $requestInfo
-                );
-            }
-
             return [
                 'success' => $response->successful(),
                 'data' => $responseData,
@@ -220,15 +187,6 @@ class MediaAlphaService
         } catch (Exception $e) {
             $endTime = microtime(true);
             $responseTime = round(($endTime - $startTime) * 1000, 3);
-
-            if ($phone) {
-                MediaAlphaWebhookService::storePostResponse(
-                    $phone,
-                    ['error' => $e->getMessage(), 'response_time_ms' => $responseTime],
-                    true,
-                    $requestInfo
-                );
-            }
 
             return [
                 'success' => false,
@@ -274,19 +232,6 @@ class MediaAlphaService
 
         // Si hay buyers válidos, proceder con el post
         $postResult = $this->post($leadData, $pingResult['data']);
-
-        // If both succeeded, also save as complete response
-        if ($phone && $pingResult['success'] && $postResult['success']) {
-            MediaAlphaWebhookService::storeCompleteResponse(
-                $phone,
-                $this->config->placement_id,
-                $pingResult['data'],
-                $postResult['data'],
-                false, // ping_error
-                false, // post_error
-                $pingResult['ping_data']['data']['leadid_id'] ?? null
-            );
-        }
 
         return [
             'success' => $postResult['success'],

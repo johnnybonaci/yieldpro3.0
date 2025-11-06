@@ -2,7 +2,6 @@
 
 namespace App\Models\Leads;
 
-use Carbon\Carbon;
 use App\Casts\Json;
 use App\Traits\FiltersTrait;
 use Illuminate\Database\Eloquent\Model;
@@ -38,15 +37,5 @@ class HistoryLeads extends Model
     public function lead()
     {
         return $this->belongsTo(Lead::class, 'phone_id', 'phone');
-    }
-
-    public function getCreatedAtAttribute($value)
-    {
-        return Carbon::parse($value)->format('Y-m-d H:i:s');
-    }
-
-    public function getUpdatedAtAttribute($value)
-    {
-        return Carbon::parse($value)->format('Y-m-d H:i:s');
     }
 }

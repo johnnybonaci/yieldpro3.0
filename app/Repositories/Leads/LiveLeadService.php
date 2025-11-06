@@ -176,7 +176,7 @@ class LiveLeadService
         return $totals;
     }
 
-    public function calculateDiffCalls(string $start, string $end, array $totals, array $averageCalls): array
+    public function calculateDiffCalls(array $totals, array $averageCalls): array
     {
         $avg = 'average';
 

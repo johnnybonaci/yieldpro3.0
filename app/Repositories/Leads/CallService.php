@@ -187,6 +187,6 @@ class CallService
 
         $lead_api_repository = new LiveLeadService();
 
-        return $lead_api_repository->calculateDiffCalls($start, $end, $totals, $average);
+        return $lead_api_repository->calculateDiffCalls($totals, $average);
     }
 }

@@ -47,7 +47,7 @@ class LogRepository
             $lead_verified['created_at'] = Carbon::parse($data_p['original_lead_submit_date'])->format('Y-m-d H:i:s');
             $lead_verified['date_history'] = Carbon::parse($data_p['original_lead_submit_date'])->format('Y-m-d');
             $lead_verified['updated_at'] = Carbon::parse($data_p['original_lead_submit_date'])->format('Y-m-d H:i:s');
-            $lead = $lead_api_repository->create(collect($lead_verified));
+            $lead_api_repository->create(collect($lead_verified));
         }
         LeadLog::create([
             'status' => self::STATUS[$data['status'] ?? 0],

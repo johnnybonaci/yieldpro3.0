@@ -274,12 +274,10 @@ class CallsApiRepository extends EloquentRepository
     public function reportCpa(string $date_start, string $date_end, $time = false): Builder
     {
         $time_field = 'convertions.date_history';
-        if ($time) {
-            if ($date_end == now()->format('Y-m-d')) {
-                $date_start = $date_start . ' 00:00:00';
-                $time_field = 'convertions.created_at';
-                $date_end = now()->subHours()->format('Y-m-d H:i:s');
-            }
+        if ($time && $date_end == now()->format('Y-m-d')) {
+            $date_start = $date_start . ' 00:00:00';
+            $time_field = 'convertions.created_at';
+            $date_end = now()->subHours()->format('Y-m-d H:i:s');
         }
         $provider_id = env('TRACKDRIVE_PROVIDER_ID', 2);
         $buyers = request()->input('select_buyers', []);
@@ -329,13 +327,13 @@ class CallsApiRepository extends EloquentRepository
     public function reportRpc(string $date_start, string $date_end, $time = false): Builder
     {
         $time_field = 'convertions.date_history';
-        if ($time) {
-            if ($date_end == now()->format('Y-m-d')) {
-                $date_start = $date_start . ' 00:00:00';
-                $time_field = 'convertions.created_at';
-                $date_end = now()->subHours()->format('Y-m-d H:i:s');
-            }
+
+        if ($time && $date_end == now()->format('Y-m-d')) {
+            $date_start = $date_start . ' 00:00:00';
+            $time_field = 'convertions.created_at';
+            $date_end = now()->subHours()->format('Y-m-d H:i:s');
         }
+
         $provider_id = env('TRACKDRIVE_PROVIDER_ID', 2);
         $buyers = request()->input('select_buyers', []);
         $buyers = is_array($buyers) ? $buyers : explode(',', $buyers);

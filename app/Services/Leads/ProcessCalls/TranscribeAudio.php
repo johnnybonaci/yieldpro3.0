@@ -7,6 +7,7 @@ use Exception;
 use App\Models\Leads\Recording;
 use OpenAI\Laravel\Facades\OpenAI;
 use App\Enums\TranscriptStatusEnum;
+use App\Exceptions\RecordNotFoundException;
 use App\Repositories\Leads\OpenAIRepository;
 
 readonly class TranscribeAudio
@@ -49,7 +50,7 @@ readonly class TranscribeAudio
     private function getRecordPath(Recording $recording): string
     {
         if (!file_exists($filepath = $recording->getAttribute('record'))) {
-            throw new Exception('Record not found');
+            throw new RecordNotFoundException('Record not found');
         }
 
         return $filepath;

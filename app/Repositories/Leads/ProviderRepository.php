@@ -32,11 +32,6 @@ class ProviderRepository
         return Provider::whereIn('name', $names)->get();
     }
 
-    public function getProviders(): Builder
-    {
-        return Provider::query();
-    }
-
     public function show(): array
     {
         return Provider::pluck('name', 'id')->toArray();

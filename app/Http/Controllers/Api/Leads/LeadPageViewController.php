@@ -24,7 +24,7 @@ class LeadPageViewController extends Controller
         $leads = $this->lead_api_repository->pageviews($date_start, $date_end);
         $page = $request->get('page', 1);
         $size = $request->get('size', 20);
-        $result = $leads->paginate($size, 'page', $page, $leads->count());
+        $result = $leads->paginate($size, $page, $leads->count(), 'page');
 
         return PageViewsCollection::make($result);
     }

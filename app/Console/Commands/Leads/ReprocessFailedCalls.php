@@ -48,7 +48,7 @@ class ReprocessFailedCalls extends Command
                     'id' => $recording->id,
                     'date_start' => $recording->date_history,
                     'date_end' => $recording->date_history,
-                ], Auth::loginUsingId(23, $remember = true))->onQueue('transcript');
+                ], Auth::loginUsingId(23, true))->onQueue('transcript');
             });
 
         $this->info('Reprocessing failed calls completed.');

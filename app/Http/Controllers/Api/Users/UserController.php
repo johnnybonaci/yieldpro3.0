@@ -38,20 +38,18 @@ class UserController extends Controller
         $authenticatedUser = auth('sanctum')->user();
 
         if (!$authenticatedUser) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+            $response = response()->json(['message' => 'Unauthenticated'], 401);
+        } elseif ($authenticatedUser->id != $userId) {
+            $response = response()->json(['message' => 'Unauthorized'], 403);
+        } else {
+            $user = User::with(['roles'])->find($userId);
+
+            $response = $user
+                ? UserResource::make($user)
+                : response()->json(['message' => 'User not found'], 404);
         }
 
-        if ($authenticatedUser->id != $userId) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $user = User::with(['roles'])->find($userId);
-
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
-        }
-
-        return UserResource::make($user);
+        return $response;
     }
 
     /**

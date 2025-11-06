@@ -157,18 +157,7 @@ class ValidatedService
             $of_default = $provider == 1 ? 10021 : 20002;
             $default = $provider == 1 ? 68 : 2;
         }
-        if ($datos['type'] == 'debt') {
-            $of_default = $provider == 1 ? 10041 : 20012;
-            $default = $provider == 1 ? 69 : 4;
-        }
-        if ($datos['type'] == 'tax_debt') {
-            $of_default = $provider == 1 ? 20022 : 20022;
-            $default = $provider == 1 ? 70 : 70;
-        }
-        if ($datos['type'] == 'under_65') {
-            $of_default = $provider == 1 ? 10031 : 10031;
-            $default = $provider == 1 ? 3 : 3;
-        }
+
         $offer_repository = new OfferRepository();
         $offer = $offer_repository->getByType([$datos['type']], $provider)->first();
         $offer_id = $offer ? $offer->id : $of_default;

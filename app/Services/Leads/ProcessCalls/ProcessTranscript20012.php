@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use App\Models\Leads\Recording;
 use OpenAI\Laravel\Facades\OpenAI;
 use App\Enums\TranscriptStatusEnum;
+use App\Exceptions\RecordNotFoundException;
 use App\Repositories\Leads\OpenAIRepository;
 
 readonly class ProcessTranscript20012
@@ -25,7 +26,7 @@ readonly class ProcessTranscript20012
         logger()->channel('ai')->info('Processing transcript', ['recording' => $recording->id]);
 
         if (is_null($recording->getAttribute('transcript'))) {
-            throw new Exception('Transcript not found');
+            throw new RecordNotFoundException('transcript not found');
         }
 
         $data = ['type' => $recording->convertion->offer_id];

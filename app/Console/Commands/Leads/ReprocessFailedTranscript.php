@@ -92,7 +92,7 @@ class ReprocessFailedTranscript extends Command
         $this->info("Processing {$count} {$type} audio recordings...");
 
         $recordings->each(function (Recording $recording) {
-            $user = Auth::loginUsingId(23, $remember = true);
+            $user = Auth::loginUsingId(23, true);
 
             TranscriptionJob::dispatch([
                 'id' => $recording->id,

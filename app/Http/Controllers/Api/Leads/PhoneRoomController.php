@@ -54,7 +54,7 @@ class PhoneRoomController extends Controller
         $leads = $this->phone_room_repository->metrics();
         $page = $request->get('page', 1);
         $size = $request->get('size', 20);
-        $result = $leads->paginate($size, 'page', $page, $leads->count());
+        $result = $leads->paginate($size, $page, $leads->count(), 'page');
 
         return $result;
     }

@@ -51,7 +51,7 @@ class TestsController extends Controller
             'id' => $recording->id,
             'date_start' => $date->format('Y-m-d'),
             'date_end' => $date->format('Y-m-d'),
-        ], Auth::loginUsingId(23, $remember = true))->onQueue('transcript');
+        ], Auth::loginUsingId(23, true))->onQueue('transcript');
 
         $recording->update(['status' => TranscriptStatusEnum::TRANSCRIBING->value]);
 

@@ -31,7 +31,7 @@ class ReprocessSale extends Command
      */
     public function handle()
     {
-        $user = Auth()->user() ?? Auth::loginUsingId(23, $remember = true);
+        $user = Auth()->user() ?? Auth::loginUsingId(23, true);
         Str::of($this->argument('phone'))->explode(',')->each(function ($phone) use ($user) {
             Convertion::select('recordings.id', 'convertions.phone_id')->join('recordings', 'convertions.id', '=', 'recordings.id')->where('phone_id', $phone)->where('durations', '>=', 10)->whereBetween('convertions.date_history', [$this->argument('start'), $this->argument('end')])
                 ->get()

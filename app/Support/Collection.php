@@ -21,7 +21,7 @@ class Collection extends BaseCollection
      *
      * @throws InvalidArgumentException
      */
-    public function paginate($perPage, $pageName = 'page', $page, $total)
+    public function paginate($perPage, $page, $total, $pageName = 'page')
     {
         $results = $total
             ? $this->forPage($page, $perPage)->values()

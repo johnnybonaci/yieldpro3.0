@@ -374,7 +374,7 @@ class CallController extends Controller
         $report = $this->calls_api_repository->sortCpaCollections($date_start, $date_end);
         $page = $request->get('page', 1);
         $size = $request->get('size', 20);
-        $result = $report->paginate($size, 'page', $page, $report->count());
+        $result = $report->paginate($size, $page, $report->count(), 'page');
 
         return CpaCollection::make($result)->additional($widgets);
     }
@@ -387,7 +387,7 @@ class CallController extends Controller
         $report = $this->calls_api_repository->sortRpcCollections($date_start, $date_end);
         $page = $request->get('page', 1);
         $size = $request->get('size', 20);
-        $result = $report->paginate($size, 'page', $page, $report->count());
+        $result = $report->paginate($size, $page, $report->count(), 'page');
 
         return RpcCollection::make($result)->additional($widgets);
     }
@@ -415,7 +415,7 @@ class CallController extends Controller
         [$widgets, $report] = $this->calls_api_repository->qaReportCollect();
         $page = $request->get('page', 1);
         $size = $request->get('size', 20);
-        $result = $report->paginate($size, 'page', $page, $report->count());
+        $result = $report->paginate($size, $page, $report->count(), 'page');
 
         return QaCollection::make($result)->additional($widgets);
     }
