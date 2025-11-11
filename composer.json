@@ -16,7 +16,9 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "maatwebsite/excel": "*",
-        "spatie/laravel-permission": "*"
+        "openai-php/laravel": "^0.18.0",
+        "spatie/laravel-permission": "*",
+        "symfony/http-client": "^7.3"
     },
     "require-dev": {
         "exin/enlightn": "^2.11",
