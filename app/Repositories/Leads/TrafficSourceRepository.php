@@ -10,10 +10,6 @@ use App\Interfaces\Leads\ImportRepositoryInterface;
 
 class TrafficSourceRepository implements ImportRepositoryInterface
 {
-    public function __construct()
-    {
-    }
-
     /**
      * Summary of create.
      */

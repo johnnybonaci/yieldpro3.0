@@ -7,10 +7,6 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class AccessTokenRepository
 {
-    public function __construct()
-    {
-    }
-
     /**
      * Get the basic token from the request headers.
      */

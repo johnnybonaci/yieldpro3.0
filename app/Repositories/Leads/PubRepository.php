@@ -10,10 +10,6 @@ use Illuminate\Database\Eloquent\Builder;
 
 class PubRepository
 {
-    public function __construct()
-    {
-    }
-
     /**
      * Summary of getPubId.
      */

@@ -11,6 +11,15 @@ use Illuminate\Validation\ValidationException;
 
 class MediaAlphaConfigController extends Controller
 {
+    // Validation rule constants
+    public const RULE_SOMETIMES_URL = 'sometimes|url';
+
+    public const RULE_SOMETIMES_STRING = 'sometimes|string';
+
+    public const RULE_SOMETIMES_ARRAY = 'sometimes|array';
+
+    public const RULE_SOMETIMES_BOOLEAN = 'sometimes|boolean';
+
     /**
      * List all configurations.
      */
@@ -44,18 +53,18 @@ class MediaAlphaConfigController extends Controller
                 'api_token' => 'required|string',
                 'placement_id' => 'required|string|unique:media_alpha_configs',
                 'version' => 'sometimes|integer|min:1',
-                'base_url' => 'sometimes|url',
-                'ping_endpoint' => 'sometimes|string',
-                'post_endpoint' => 'sometimes|string',
+                'base_url' => self::RULE_SOMETIMES_URL,
+                'ping_endpoint' => self::RULE_SOMETIMES_STRING,
+                'post_endpoint' => self::RULE_SOMETIMES_STRING,
                 'source_url' => 'required|url',
-                'tcpa_config' => 'sometimes|array',
-                'tcpa_config.call_consent' => 'sometimes|boolean',
-                'tcpa_config.email_consent' => 'sometimes|boolean',
-                'tcpa_config.sms_consent' => 'sometimes|boolean',
-                'tcpa_config.text' => 'sometimes|string',
-                'tcpa_config.url' => 'sometimes|url',
-                'default_mapping' => 'sometimes|array',
-                'active' => 'sometimes|boolean',
+                'tcpa_config' => self::RULE_SOMETIMES_ARRAY,
+                'tcpa_config.call_consent' => self::RULE_SOMETIMES_BOOLEAN,
+                'tcpa_config.email_consent' => self::RULE_SOMETIMES_BOOLEAN,
+                'tcpa_config.sms_consent' => self::RULE_SOMETIMES_BOOLEAN,
+                'tcpa_config.text' => self::RULE_SOMETIMES_STRING,
+                'tcpa_config.url' => self::RULE_SOMETIMES_URL,
+                'default_mapping' => self::RULE_SOMETIMES_ARRAY,
+                'active' => self::RULE_SOMETIMES_BOOLEAN,
             ]);
 
             $config = MediaAlphaConfig::create($validated);
@@ -82,21 +91,21 @@ class MediaAlphaConfigController extends Controller
         try {
             $validated = $request->validate([
                 'name' => 'sometimes|string|max:255|unique:media_alpha_configs,name,' . $config->id,
-                'api_token' => 'sometimes|string',
+                'api_token' => self::RULE_SOMETIMES_STRING,
                 'placement_id' => 'sometimes|string|unique:media_alpha_configs,placement_id,' . $config->id,
                 'version' => 'sometimes|integer|min:1',
-                'base_url' => 'sometimes|url',
-                'ping_endpoint' => 'sometimes|string',
-                'post_endpoint' => 'sometimes|string',
-                'source_url' => 'sometimes|url',
-                'tcpa_config' => 'sometimes|array',
-                'tcpa_config.call_consent' => 'sometimes|boolean',
-                'tcpa_config.email_consent' => 'sometimes|boolean',
-                'tcpa_config.sms_consent' => 'sometimes|boolean',
-                'tcpa_config.text' => 'sometimes|string',
-                'tcpa_config.url' => 'sometimes|url',
-                'default_mapping' => 'sometimes|array',
-                'active' => 'sometimes|boolean',
+                'base_url' => self::RULE_SOMETIMES_URL,
+                'ping_endpoint' => self::RULE_SOMETIMES_STRING,
+                'post_endpoint' => self::RULE_SOMETIMES_STRING,
+                'source_url' => self::RULE_SOMETIMES_URL,
+                'tcpa_config' => self::RULE_SOMETIMES_ARRAY,
+                'tcpa_config.call_consent' => self::RULE_SOMETIMES_BOOLEAN,
+                'tcpa_config.email_consent' => self::RULE_SOMETIMES_BOOLEAN,
+                'tcpa_config.sms_consent' => self::RULE_SOMETIMES_BOOLEAN,
+                'tcpa_config.text' => self::RULE_SOMETIMES_STRING,
+                'tcpa_config.url' => self::RULE_SOMETIMES_URL,
+                'default_mapping' => self::RULE_SOMETIMES_ARRAY,
+                'active' => self::RULE_SOMETIMES_BOOLEAN,
             ]);
 
             $config->update($validated);

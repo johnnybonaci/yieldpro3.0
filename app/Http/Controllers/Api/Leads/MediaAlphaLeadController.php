@@ -12,6 +12,16 @@ use Illuminate\Validation\ValidationException;
 
 class MediaAlphaLeadController extends Controller
 {
+    public const VALIDATION_E = 'Validation error';
+
+    public const INTERNAL_SERVER_E = 'Internal server error';
+
+    public const RULE_SOMETIMES_BOOLEAN = 'sometimes|boolean';
+
+    public const RULE_SOMETIMES_NUMERIC_MIN_0 = 'sometimes|numeric|min:0';
+
+    public const RULE_SOMETIMES_ARRAY = 'sometimes|array';
+
     public MediaAlphaServiceV2 $service2;
 
     public function __construct(MediaAlphaServiceV2 $service2)
@@ -34,13 +44,13 @@ class MediaAlphaLeadController extends Controller
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation error',
+                'message' => self::VALIDATION_E,
                 'errors' => $e->errors(),
             ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Internal server error',
+                'message' => self::INTERNAL_SERVER_E,
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -62,13 +72,13 @@ class MediaAlphaLeadController extends Controller
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation error',
+                'message' => self::VALIDATION_E,
                 'errors' => $e->errors(),
             ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Internal server error',
+                'message' => self::INTERNAL_SERVER_E,
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -88,13 +98,13 @@ class MediaAlphaLeadController extends Controller
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation error',
+                'message' => self::VALIDATION_E,
                 'errors' => $e->errors(),
             ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Internal server error',
+                'message' => self::INTERNAL_SERVER_E,
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -114,28 +124,28 @@ class MediaAlphaLeadController extends Controller
             'zip' => 'required|string|max:10',
             'county' => 'sometimes|string|max:100',
 
-            'currently_insured' => 'sometimes|boolean',
-            'lost_coverage' => 'sometimes|boolean',
-            'household_income' => 'sometimes|numeric|min:0',
+            'currently_insured' => self::RULE_SOMETIMES_BOOLEAN,
+            'lost_coverage' => self::RULE_SOMETIMES_BOOLEAN,
+            'household_income' => self::RULE_SOMETIMES_NUMERIC_MIN_0,
             'primary_language' => 'sometimes|string|max:50',
 
-            'primary' => 'sometimes|array',
+            'primary' => self::RULE_SOMETIMES_ARRAY,
             'primary.name' => 'sometimes|string|max:255',
             'primary.birth_date' => 'sometimes|date',
             'primary.gender' => 'sometimes|string|in:M,F,Male,Female',
-            'primary.height' => 'sometimes|numeric|min:0',
-            'primary.weight' => 'sometimes|numeric|min:0',
+            'primary.height' => self::RULE_SOMETIMES_NUMERIC_MIN_0,
+            'primary.weight' => self::RULE_SOMETIMES_NUMERIC_MIN_0,
 
-            'tcpa' => 'sometimes|array',
-            'tcpa.call_consent' => 'sometimes|boolean',
-            'tcpa.email_consent' => 'sometimes|boolean',
-            'tcpa.sms_consent' => 'sometimes|boolean',
+            'tcpa' => self::RULE_SOMETIMES_ARRAY,
+            'tcpa.call_consent' => self::RULE_SOMETIMES_BOOLEAN,
+            'tcpa.email_consent' => self::RULE_SOMETIMES_BOOLEAN,
+            'tcpa.sms_consent' => self::RULE_SOMETIMES_BOOLEAN,
             'tcpa.text' => 'sometimes|string',
             'tcpa.url' => 'sometimes|url',
 
             'leadid_id' => 'sometimes|string|max:50',
 
-            'custom_fields' => 'sometimes|array',
+            'custom_fields' => self::RULE_SOMETIMES_ARRAY,
         ]);
     }
 }

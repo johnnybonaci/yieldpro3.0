@@ -4,7 +4,6 @@ namespace App\Services\Leads;
 
 use Carbon\Carbon;
 use App\Models\Leads\Pub;
-use App\Models\LeadsClone;
 use App\ValueObjects\Period;
 use App\Models\Leads\Provider;
 use App\Models\Leads\PhoneRoom;
@@ -61,88 +60,188 @@ class LeadService extends ImportService implements PostingServiceInterface
     {
         $auth_token = env('FACEBOOK_USER_TOKEN');
         $forms = new Collection(['869138990831414', '6217642471590057', '153782883856490']);
-        $lead = [];
-        $response = [];
         $lead_form = [];
-        $result = [];
 
-        $callsDataRepeat = $forms->mapWithKeys(function ($leads) use ($period, $auth_token, &$lead_form, $provider) {
-            $do = 1;
-            $per_page = 100;
-            $query_parameters = [
-                'access_token' => $auth_token,
-                'fields' => 'campaign_name,field_data,form_id,created_time',
-                'pretty' => 0,
-                'limit' => $per_page,
-            ];
-            $created_at_from = $period->from();
-            while ($do > 0) {
-                $res = Http::get(self::FB_URL . '/' . $leads . '/leads', $query_parameters)->json();
-                $response = new Collection($res['data']);
-                $response = $response->filter(function ($leads) use ($created_at_from) {
-                    $date_leads = Carbon::create($leads['created_time']);
+        $callsDataRepeat = $forms->mapWithKeys(function ($formId) use ($period, $auth_token, &$lead_form, $provider) {
+            $leads = $this->fetchLeadsFromForm($formId, $period, $auth_token, $provider);
+            $lead_form = array_merge($leads, $lead_form);
 
-                    return $date_leads->greaterThanOrEqualTo($created_at_from);
-                })->map(function ($call) use ($provider) {
-                    $result = [];
-                    $date_leads = Carbon::create($call['created_time']);
-                    $date = $date_leads->setTimezone('America/New_York')->format('Y-m-d H:i:s');
-                    foreach ($call['field_data'] as $value) {
-                        $result[$value['name']] = $value['values'][0];
-                    }
-                    $fullName = $result['full_name'];
-                    $names = preg_split('/\s+/', $fullName);
-                    $first = $middle = $mlast = $last = '';
-                    switch (count($names)) {
-                        case 4:
-                            list($first, $middle, $mlast, $last) = $names;
-
-                            break;
-                        case 3:
-                            list($first, $middle, $last) = $names;
-
-                            break;
-                        case 2:
-                            list($first, $last) = $names;
-
-                            break;
-                        case 1:
-                            list($first) = $names;
-
-                            break;
-                    }
-                    $result['firstName'] = trim($first . ' ' . $middle);
-                    $result['lastName'] = trim($mlast . ' ' . $last);
-                    $result['phone'] = trim($result['phone_number']);
-                    $result['campaign_name'] = $call['campaign_name'] ?? '';
-                    $result['sub_ID'] = $call['form_id'];
-                    $result['pub_id'] = 106;
-                    $result['type'] = 'legal';
-                    $this->validated_service->validatePhone($result);
-                    $this->validated_service->validatePubWithoutUser($result, $provider);
-                    $this->validated_service->validateSub($result);
-                    $this->validated_service->validateMetrics($result);
-                    $result['pub_ID'] = $result['pub_id'];
-
-                    $insert = $this->lead_api_repository->resource($result);
-                    if ($this->lead_api_repository->create($insert)->wasRecentlyCreated) {
-                        $this->dispatch($insert);
-                    }
-
-                    return $result;
-                });
-
-                $do = $response->count();
-                if ($do > 0) {
-                    $lead_form = array_merge($response->toArray(), $lead_form);
-                    $query_parameters['after'] = $res['paging']['cursors']['after'];
-                }
-            }
-
-            return $lead_form;
+            return $leads;
         });
 
         return $callsDataRepeat->count();
+    }
+
+    /**
+     * Fetch leads from a specific form.
+     */
+    private function fetchLeadsFromForm(string $formId, Period $period, string $auth_token, int $provider): array
+    {
+        $lead_form = [];
+        $query_parameters = $this->buildQueryParameters($auth_token);
+        $created_at_from = $period->from();
+
+        do {
+            $res = Http::get(self::FB_URL . '/' . $formId . '/leads', $query_parameters)->json();
+            $response = new Collection($res['data']);
+
+            $filteredLeads = $this->filterAndProcessLeads($response, $created_at_from, $provider);
+
+            $leadsCount = $filteredLeads->count();
+            if ($leadsCount > 0) {
+                $lead_form = array_merge($filteredLeads->toArray(), $lead_form);
+                $query_parameters['after'] = $res['paging']['cursors']['after'];
+            }
+        } while ($leadsCount > 0);
+
+        return $lead_form;
+    }
+
+    /**
+     * Build query parameters for Facebook API.
+     */
+    private function buildQueryParameters(string $auth_token): array
+    {
+        return [
+            'access_token' => $auth_token,
+            'fields' => 'campaign_name,field_data,form_id,created_time',
+            'pretty' => 0,
+            'limit' => 100,
+        ];
+    }
+
+    /**
+     * Filter and process leads.
+     * @param mixed $created_at_from
+     */
+    private function filterAndProcessLeads(Collection $response, $created_at_from, int $provider): Collection
+    {
+        return $response
+            ->filter(fn ($lead) => $this->isLeadValid($lead, $created_at_from))
+            ->map(fn ($call) => $this->processLead($call, $provider));
+    }
+
+    /**
+     * Check if lead is valid based on creation date.
+     * @param mixed $created_at_from
+     */
+    private function isLeadValid(array $lead, $created_at_from): bool
+    {
+        $date_leads = Carbon::create($lead['created_time']);
+
+        return $date_leads->greaterThanOrEqualTo($created_at_from);
+    }
+
+    /**
+     * Process a single lead.
+     */
+    private function processLead(array $call, int $provider): array
+    {
+        $result = $this->extractFieldData($call);
+        $this->parseFullName($result);
+        $this->addLeadMetadata($result, $call);
+        $this->validateAndEnrichLead($result, $provider);
+        $this->saveAndDispatchLead($result);
+
+        return $result;
+    }
+
+    /**
+     * Extract field data from call.
+     */
+    private function extractFieldData(array $call): array
+    {
+        $result = [];
+        foreach ($call['field_data'] as $value) {
+            $result[$value['name']] = $value['values'][0];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Parse full name into components.
+     */
+    private function parseFullName(array &$result): void
+    {
+        $fullName = $result['full_name'];
+        $names = preg_split('/\s+/', $fullName);
+
+        list($first, $middle, $mlast, $last) = $this->splitNames($names);
+
+        $result['firstName'] = trim($first . ' ' . $middle);
+        $result['lastName'] = trim($mlast . ' ' . $last);
+    }
+
+    /**
+     * Split names array into components.
+     */
+    private function splitNames(array $names): array
+    {
+        $first = $middle = $mlast = $last = '';
+
+        switch (count($names)) {
+            case 4:
+                list($first, $middle, $mlast, $last) = $names;
+
+                break;
+            case 3:
+                list($first, $middle, $last) = $names;
+
+                break;
+            case 2:
+                list($first, $last) = $names;
+
+                break;
+            case 1:
+                list($first) = $names;
+
+                break;
+            default:
+                $first = $names[0] ?? '';
+                $middle = $names[1] ?? '';
+                $mlast = $names[2] ?? '';
+                $last = $names[3] ?? '';
+
+                break;
+        }
+
+        return [$first, $middle, $mlast, $last];
+    }
+
+    /**
+     * Add lead metadata.
+     */
+    private function addLeadMetadata(array &$result, array $call): void
+    {
+        $result['phone'] = trim($result['phone_number']);
+        $result['campaign_name'] = $call['campaign_name'] ?? '';
+        $result['sub_ID'] = $call['form_id'];
+        $result['pub_id'] = 106;
+        $result['type'] = 'legal';
+    }
+
+    /**
+     * Validate and enrich lead data.
+     */
+    private function validateAndEnrichLead(array &$result, int $provider): void
+    {
+        $this->validated_service->validatePhone($result);
+        $this->validated_service->validatePubWithoutUser($result, $provider);
+        $this->validated_service->validateSub($result);
+        $this->validated_service->validateMetrics($result);
+        $result['pub_ID'] = $result['pub_id'];
+    }
+
+    /**
+     * Save lead and dispatch if newly created.
+     */
+    private function saveAndDispatchLead(array $result): void
+    {
+        $insert = $this->lead_api_repository->resource($result);
+        if ($this->lead_api_repository->create($insert)->wasRecentlyCreated) {
+            $this->dispatch($insert);
+        }
     }
 
     /**
@@ -185,60 +284,6 @@ class LeadService extends ImportService implements PostingServiceInterface
         $data['sub_id3'] = 'Medicare Calls';
 
         $this->lead_api_repository->process($data, __toJob($provider, $job));
-    }
-
-    public function superImport(Period $date)
-    {
-        $key = hash('sha256', $date->from()->format('Y-m-d') . $date->to()->endOfMonth()->format('Y-m-d'));
-        $data = LeadsClone::orderBy('date_history', 'asc')->get();
-
-        $data->map(function ($lead) {
-            $result = [];
-
-            $result['firstName'] = $lead->firstName;
-            $result['lastName'] = $lead->lastName;
-            $result['phone'] = $lead->phone;
-            $result['campaign_name'] = $lead->campaign_name;
-            $result['sub_ID'] = $lead->sub_ID;
-            $result['pub_id'] = $lead->pub_ID;
-            $result['type'] = $lead->offers;
-            $result['created_at'] = $lead->created_at;
-            $result['date_history'] = $lead->date_history;
-            $result['updated_at'] = $lead->updated_at;
-            $result['email'] = $lead->email;
-            $result['state'] = $lead->state;
-            $result['zip_code'] = $lead->zip_code;
-            $result['ip'] = $lead->ip;
-            $result['data'] = json_decode($lead->data);
-            $result['universal_leadid'] = $lead->universal_leadid;
-            $result['xxTrustedFormToken'] = $lead->xxTrustedFormToken;
-            $this->validated_service->validatePhone($result);
-            $this->validated_service->validatePubWithoutUser($result, 1);
-            $this->validated_service->validateSub($result);
-            $this->validated_service->validateMetrics($result);
-            $result['pub_ID'] = $result['pub_id'];
-            unset($result['pub_id']);
-
-            if (!empty($result['phone'])) {
-                $insert = $this->lead_api_repository->resource($result);
-                if ($this->lead_api_repository->create($insert)->wasRecentlyCreated) {
-                    $log['status'] = !empty($lead->lead_id) ? 'success' : 'error';
-                    $log['phone'] = $insert['phone'];
-                    $log['lead_id'] = $lead->lead_id;
-                    $message = $lead->booberdo_log ?? '';
-                    $this->log_repository->logginProvider($message, $log);
-                    if (in_array($insert['type'], ['legal', 'debt', 'tax_debt'])) {
-                        $message = $lead->goodcall_log ?? '';
-                        $log['status'] = (!empty($lead->goodcall_lead_id) && $lead->goodcall_lead_id > 0) ? 'success' : 'error';
-                        $log['phone'] = $insert['phone'];
-                        $log['lead_id'] = $lead->goodcall_lead_id;
-                        $this->log_repository->logginPhoneRoom($message, $log, 1);
-                    }
-                }
-            }
-        });
-
-        return $data->count();
     }
 
     public function isInvalidName($value): bool

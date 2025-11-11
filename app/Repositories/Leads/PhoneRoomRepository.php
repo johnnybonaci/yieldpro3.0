@@ -19,9 +19,7 @@ use App\Support\Collection as PersonalCollection;
 
 class PhoneRoomRepository extends EloquentRepository
 {
-    public function __construct()
-    {
-    }
+    public const VENDOR_YP = 'pub_lists.name as vendors_yp';
 
     /**
      * Summary of Resource.
@@ -180,7 +178,7 @@ class PhoneRoomRepository extends EloquentRepository
         Config::get('services.trackdrive.pub_id_exception');
         $pubs_lists = array_merge($pubs_lists, Config::get('services.trackdrive.pub_id_exception'));
 
-        $col = ['leads.phone', 'leads.first_name', 'leads.last_name', 'leads.email', 'leads.type', 'leads.yp_lead_id', 'subs.sub_id', 'pubs.pub_list_id', 'pub_lists.name as vendors_yp', 'phone_room_logs.created_at', 'phone_room_logs.log', 'phone_room_logs.status', 'phone_room_logs.phone_room_lead_id', 'phone_room_logs.request'];
+        $col = ['leads.phone', 'leads.first_name', 'leads.last_name', 'leads.email', 'leads.type', 'leads.yp_lead_id', 'subs.sub_id', 'pubs.pub_list_id', self::VENDOR_YP, 'phone_room_logs.created_at', 'phone_room_logs.log', 'phone_room_logs.status', 'phone_room_logs.phone_room_lead_id', 'phone_room_logs.request'];
 
         return $this->getLeads($date_start, $date_end, $col, $pubs_lists);
     }
@@ -252,7 +250,7 @@ class PhoneRoomRepository extends EloquentRepository
                 'leads.pub_id',
                 'subs.sub_id',
                 'pubs.pub_list_id',
-                'pub_lists.name as vendors_yp',
+                self::VENDOR_YP,
                 'calls_phone_rooms.created_at',
                 'calls_phone_rooms.data',
                 'calls_phone_rooms.type',
@@ -330,7 +328,7 @@ class PhoneRoomRepository extends EloquentRepository
                 'phone_room_logs.created_at',
                 'subs.sub_id',
                 'pubs.pub_list_id',
-                'pub_lists.name as vendors_yp',
+                self::VENDOR_YP,
                 'calls_phone_rooms.type',
                 'calls_phone_rooms.created_at as created',
                 'calls_phone_rooms.updated_at as updated',

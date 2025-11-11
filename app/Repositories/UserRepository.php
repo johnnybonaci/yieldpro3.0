@@ -7,10 +7,6 @@ use Illuminate\Database\Eloquent\Builder;
 
 class UserRepository
 {
-    public function __construct()
-    {
-    }
-
     /**
      * find by id.
      */

@@ -142,40 +142,97 @@ class ValidatedService
      */
     public function validatePubWithoutUser(array &$datos, int $provider): void
     {
-        $of_default = $provider == 1 ? 10011 : 20032;
-        $default = $provider == 1 ? 67 : 1;
+        $offerDefaults = $this->getOfferDefaults($datos['type'], $provider);
 
-        if ($datos['type'] == 'MC') {
-            $of_default = $provider == 1 ? 10001 : 20052;
-            $default = $provider == 1 ? 66 : 5;
-        }
-        if ($datos['type'] == 'legal') {
-            $of_default = $provider == 1 ? 10011 : 20032;
-            $default = $provider == 1 ? 67 : 1;
-        }
-        if ($datos['type'] == 'ACA') {
-            $of_default = $provider == 1 ? 10021 : 20002;
-            $default = $provider == 1 ? 68 : 2;
-        }
+        $offer = $this->findOfferByType($datos['type'], $provider);
+        $offer_id = $offer ? $offer->id : $offerDefaults['offer_id'];
 
-        $offer_repository = new OfferRepository();
-        $offer = $offer_repository->getByType([$datos['type']], $provider)->first();
-        $offer_id = $offer ? $offer->id : $of_default;
         $cpl_data = $this->pub_repository->findPubList(intval($datos['pub_id']));
-        if ($cpl_data) {
-            $pub_data = $this->pub_repository->getPubId($offer_id, intval($datos['pub_id']));
-        }
-        $pub_data = $pub_data ?? $this->pub_repository->findById($default);
+        $pub_data = $this->resolvePubData($cpl_data, $offer_id, intval($datos['pub_id']), $offerDefaults['default_pub']);
         $cpl_data = $cpl_data ?? $this->pub_repository->findPubList($pub_data->pub_list_id);
-        $pub_ID = $pub_data->id;
-        $user = User::where('pub_id', $pub_ID)->first();
-        $cpl = 0;
-        if ($user) {
-            $cpl = Arr::exists($cpl_data->cpl, $user->id) ? $cpl_data->cpl[$user->id] : 0;
+
+        $cpl = $this->calculateCpl($pub_data->id, $cpl_data);
+
+        $this->assignValidatedData($datos, $pub_data, $cpl, $offer);
+    }
+
+    /**
+     * Get offer defaults based on type and provider.
+     */
+    private function getOfferDefaults(string $type, int $provider): array
+    {
+        $defaults = [
+            'MC' => [
+                1 => ['offer_id' => 10001, 'default_pub' => 66],
+                2 => ['offer_id' => 20052, 'default_pub' => 5],
+            ],
+            'legal' => [
+                1 => ['offer_id' => 10011, 'default_pub' => 67],
+                2 => ['offer_id' => 20032, 'default_pub' => 1],
+            ],
+            'ACA' => [
+                1 => ['offer_id' => 10021, 'default_pub' => 68],
+                2 => ['offer_id' => 20002, 'default_pub' => 2],
+            ],
+        ];
+
+        // Default to 'legal' if type not found
+        $typeDefaults = $defaults[$type] ?? $defaults['legal'];
+
+        return $typeDefaults[$provider] ?? $typeDefaults[1];
+    }
+
+    /**
+     * Find offer by type.
+     */
+    private function findOfferByType(string $type, int $provider)
+    {
+        $offer_repository = new OfferRepository();
+
+        return $offer_repository->getByType([$type], $provider)->first();
+    }
+
+    /**
+     * Resolve pub data.
+     * @param mixed $cpl_data
+     */
+    private function resolvePubData($cpl_data, int $offer_id, int $pub_id, int $default_pub)
+    {
+        if ($cpl_data) {
+            $pub_data = $this->pub_repository->getPubId($offer_id, $pub_id);
+            if ($pub_data) {
+                return $pub_data;
+            }
         }
+
+        return $this->pub_repository->findById($default_pub);
+    }
+
+    /**
+     * Calculate CPL for pub.
+     * @param mixed $cpl_data
+     */
+    private function calculateCpl(int $pub_ID, $cpl_data): float
+    {
+        $user = User::where('pub_id', $pub_ID)->first();
+
+        if (!$user || !$cpl_data) {
+            return 0;
+        }
+
+        return Arr::exists($cpl_data->cpl, $user->id) ? $cpl_data->cpl[$user->id] : 0;
+    }
+
+    /**
+     * Assign validated data to datos array.
+     * @param mixed $pub_data
+     * @param mixed $offer
+     */
+    private function assignValidatedData(array &$datos, $pub_data, float $cpl, $offer): void
+    {
         $datos['cpl'] = $cpl;
-        $datos['pub_id'] = $pub_ID;
-        $datos['sub_id2'] = $pub_ID;
+        $datos['pub_id'] = $pub_data->id;
+        $datos['sub_id2'] = $pub_data->id;
         $datos['sub_id5'] = $pub_data->pub_list_id;
         $datos['type'] = $offer ? $offer->type : 'ACA';
         $datos['sub_id4'] = $datos['type'];

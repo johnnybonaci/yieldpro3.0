@@ -13,6 +13,7 @@ use App\Services\Leads\OpenAIService;
 use Illuminate\Queue\SerializesModels;
 use App\Notifications\TranscriptMessage;
 use Illuminate\Queue\InteractsWithQueue;
+use App\Exceptions\RecordNotFoundException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use App\Repositories\Leads\OpenAIRepository;
@@ -47,7 +48,7 @@ class TranscriptionJob implements ShouldQueue
         $recording = $this->getRecording();
 
         if (!$recording) {
-            throw new Exception('Call not found');
+            throw new RecordNotFoundException('Call not found');
         }
 
         $recording = $openAIService->analyze($recording);

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\Leads;
 
 use App\Models\Leads\Sub;
-use App\Models\Leads\Call;
 use App\Models\Leads\Buyer;
 use App\Models\Leads\Offer;
 use App\Models\Leads\State;
@@ -24,28 +23,28 @@ use App\Http\Controllers\Controller;
 use App\Jobs\Leads\TranscriptionJob;
 use App\Repositories\UserRepository;
 use Maatwebsite\Excel\Facades\Excel;
-use Rap2hpoutre\FastExcel\FastExcel;
 use App\Exports\Leads\CallsCpaExport;
 use App\Exports\Leads\CallsRpcExport;
 use App\Exports\Leads\MultipleSheets;
 use App\Services\Leads\OpenAIService;
 use App\Exports\Leads\WidgetsQaExport;
-use App\Repositories\Leads\CallService;
 use App\Http\Resources\Leads\QaCollection;
 use App\Http\Resources\Leads\CpaCollection;
 use App\Http\Resources\Leads\RpcCollection;
 use App\Http\Resources\Leads\CallCollection;
 use App\Repositories\Leads\LeadApiRepository;
 use App\Repositories\Leads\CallsApiRepository;
-use App\Http\Resources\Leads\CallNewCollection;
 
 class CallController extends Controller
 {
+    public const XLS = '.xlsx';
+
+    public const RULE_REQUIRED = 'required|integer';
+
     public function __construct(
         protected LeadApiRepository $lead_api_repository,
         protected CallsApiRepository $calls_api_repository,
         protected UserRepository $user_repository,
-        protected CallService $callService,
     ) {
     }
 
@@ -76,22 +75,6 @@ class CallController extends Controller
         $result = $leads->sortsFields('convertions.created_at')->paginate($size, ['*'], 'page', $page, $total);
 
         return CallCollection::make($result)->additional($summary);
-    }
-
-    public function index_new(Request $request): mixed
-    {
-        $date_start = $request->get('date_start', now()->format('Y-m-d'));
-        $date_end = $request->get('date_end', now()->format('Y-m-d'));
-
-        extract(__toRangePassDay($date_start, $date_end));
-
-        $calls = $this->callService->paginate($date_start, $date_end);
-        $average = $this->callService->average($date_start, $date_end);
-        $diffTotals = $this->callService->calculateDiff($newstart, $newend, $average);
-
-        $summary = array_merge($average, $diffTotals);
-
-        return CallNewCollection::make($calls)->additional($summary);
     }
 
     public function metadata(Request $request): mixed
@@ -209,10 +192,10 @@ class CallController extends Controller
     public function edit(Request $request)
     {
         $request->validate([
-            'id' => 'required|integer',
-            'billable' => 'required|integer',
+            'id' => self::RULE_REQUIRED,
+            'billable' => self::RULE_REQUIRED,
             'call_ending_sooner_reason' => 'nullable|string',
-            'insurance_value' => 'required|integer',
+            'insurance_value' => self::RULE_REQUIRED,
             'insurance_name' => 'nullable|string',
         ]);
 
@@ -245,7 +228,7 @@ class CallController extends Controller
     {
         $request->validate([
             'query' => 'required|string',
-            'id' => 'required|integer',
+            'id' => self::RULE_REQUIRED,
         ]);
 
         $response = $openaiService->ask($request->input('query'), $request->input('id'));
@@ -255,57 +238,7 @@ class CallController extends Controller
 
     public function export()
     {
-        return Excel::download(new CallsExport(), 'calls_report_' . now() . '.xlsx');
-    }
-
-    public function export_new()
-    {
-        set_time_limit(300);
-
-        $date_start = request()->get('date_start', now()->format('Y-m-d'));
-        $date_end = request()->get('date_end', now()->format('Y-m-d'));
-
-        $callsCursor = $this->callService->callsCursor($date_start, $date_end);
-
-        function usersGenerator($callsCursor)
-        {
-            foreach ($callsCursor as $lead) {
-                yield $lead;
-            }
-        }
-
-        return (new FastExcel(usersGenerator($callsCursor)))->download('calls_report_' . now() . '.xlsx', function (Call $call) {
-            return [
-                'phone' => $call->phone_id,
-                'state' => $call->state,
-                'status calls' => $call->status,
-                'insurance name' => __toAnalisys($call->getRawOriginal('ai_analysis'), 'existing_insurance_name'),
-                'revenue' => $call->revenue,
-                'cpl' => $call->cpl,
-                'durations' => $call->durations,
-                'calls' => $call->calls,
-                'converted' => $call->converted,
-                'terminating_phone' => $call->terminating_phone,
-                'did number' => $call->did_number_id,
-                'date_sale' => $call->created_at->format('Y-m-d H:i:s'),
-                'Sales' => $call->ai_sale_status,
-                'offers' => $call->offer_name,
-                'buyers' => $call->buyer_name,
-                'vendors_td' => $call->traffic_source_name,
-                'pub id' => $call->lead_publisher_id,
-                'Sale Conclusion' => __toAnalisys($call->getRawOriginal('ai_analysis'), 'sale_analysis'),
-                'Sentiment Analysis' => __toAnalisys($call->getRawOriginal('ai_analysis'), 'sentiment_analysis'),
-                'Call Ending Issues Status' => match ($call->ai_analysis['call_ending_sooner_result'] ?? null) {
-                    true => 'YES',
-                    false => 'NO',
-                    default => 'N/A',
-                },
-                'Call Ending Analysis' => __toAnalisys($call->getRawOriginal('ai_analysis'), 'call_ending_analysis'),
-                'Call Ending Reason' => $call->ai_analysis['call_ending_sooner_reason']
-                    ?? $call->ai_analysis['call_ending_sooner_reasons'][0]['category']
-                    ?? '',
-            ];
-        });
+        return Excel::download(new CallsExport(), 'calls_report_' . now() . self::XLS);
     }
 
     public function transcript(Request $request)
@@ -398,7 +331,7 @@ class CallController extends Controller
             'Cpa_Details' => new CallsCpaExport(),
             'Cpa_Summary' => new CpaSumExport(),
         ])
-        )->download('cpa_report_' . now() . '.xlsx');
+        )->download('cpa_report_' . now() . self::XLS);
     }
 
     public function exportRpc()
@@ -407,7 +340,7 @@ class CallController extends Controller
             'Rpc_Details' => new CallsRpcExport(),
             'Rpc_Summary' => new RpcSumExport(),
         ])
-        )->download('rpc_report_' . now() . '.xlsx');
+        )->download('rpc_report_' . now() . self::XLS);
     }
 
     public function reportQa(Request $request): QaCollection
@@ -430,6 +363,6 @@ class CallController extends Controller
             'Qa_Report' => new CallsQaExport($collections),
             'Qa_Widgets' => new WidgetsQaExport($widgets),
         ])
-        )->download('qa_report_' . now() . '.xlsx');
+        )->download('qa_report_' . now() . self::XLS);
     }
 }

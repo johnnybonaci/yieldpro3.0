@@ -11,10 +11,6 @@ use App\Interfaces\Leads\ImportRepositoryInterface;
 
 class DidNumberRepository implements ImportRepositoryInterface
 {
-    public function __construct()
-    {
-    }
-
     /**
      * Summary of create.
      */

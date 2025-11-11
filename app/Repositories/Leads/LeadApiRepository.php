@@ -23,11 +23,9 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class LeadApiRepository extends EloquentRepository
 {
-    public $jornaya_lead_repository;
+    public const MAX_CPL = 'MAX(leads.cpl) as cpl';
 
-    public function __construct()
-    {
-    }
+    public $jornaya_lead_repository;
 
     public static function __saveHistoryLead(array $lead, array $data)
     {
@@ -179,42 +177,40 @@ class LeadApiRepository extends EloquentRepository
     public function leads(string $date_start, string $date_end): Builder
     {
         $date_record = request()->input('date_record', 'date_created');
-        $model = request()->input('url_switch') == 'tracking-campaign' ? new TrackingLead() : new Lead();
-        $table = $model->getTable();
 
         $pubs_lists = [1, 2, 3, 4, 5, 64, 66, 67, 68, 69, 70];
 
-        $col = [$table . '.phone', $table . '.first_name', $table . '.last_name', $table . '.email', $table . '.type', $table . '.zip_code', $table . '.state', $table . '.data', $table . '.yp_lead_id', $table . '.campaign_name_id', $table . '.universal_lead_id', $table . '.trusted_form', 'subs.sub_id', 'pubs.pub_list_id', $table . '.created_at', $table . '.cpl', 'pub_lists.name as vendors_yp', 'offers.name as offers', 'convertions.calls', 'convertions.status', $table . '.sub_id5'];
+        $col = ['leads.phone', 'leads.first_name', 'leads.last_name', 'leads.email', 'leads.type', 'leads.zip_code', 'leads.state', 'leads.data', 'leads.yp_lead_id', 'leads.campaign_name_id', 'leads.universal_lead_id', 'leads.trusted_form', 'subs.sub_id', 'pubs.pub_list_id', 'leads.created_at', 'leads.cpl', 'pub_lists.name as vendors_yp', 'offers.name as offers', 'convertions.calls', 'convertions.status', 'leads.sub_id5'];
         if ($date_record == 'date_created') {
-            $leads = Convertion::rightJoin($table, function ($join) use ($date_start, $date_end, $table) {
-                $join->on($table . '.phone', '=', 'convertions.phone_id')
+            $leads = Convertion::rightJoin('leads', function ($join) use ($date_start, $date_end) {
+                $join->on('leads.phone', '=', 'convertions.phone_id')
                     ->whereBetween('convertions.date_history', [$date_start, $date_end]);
             })
-                ->join('subs', 'subs.id', '=', $table . '.sub_id')
-                ->join('pubs', 'pubs.id', '=', $table . '.pub_id')
+                ->join('subs', 'subs.id', '=', 'leads.sub_id')
+                ->join('pubs', 'pubs.id', '=', 'leads.pub_id')
                 ->join('pub_lists', 'pub_lists.id', '=', 'pubs.pub_list_id')
                 ->join('offers', 'offers.id', '=', 'pubs.offer_id')
                 ->leftJoin('traffic_sources', 'traffic_sources.id', '=', 'convertions.traffic_source_id')
                 ->select($col)
-                ->whereBetween($table . '.date_history', [$date_start, $date_end])
-                ->whereNotIn($table . '.pub_id', $pubs_lists)
+                ->whereBetween('leads.date_history', [$date_start, $date_end])
+                ->whereNotIn('leads.pub_id', $pubs_lists)
                 ->filterFields()
-                ->groupBy($table . '.phone');
+                ->groupBy('leads.phone');
         } else {
-            $leads = Convertion::join($table, function ($join) use ($date_start, $date_end, $table) {
-                $join->on($table . '.phone', '=', 'convertions.phone_id')
+            $leads = Convertion::join('leads', function ($join) use ($date_start, $date_end) {
+                $join->on('leads.phone', '=', 'convertions.phone_id')
                     ->whereBetween('convertions.date_history', [$date_start, $date_end]);
             })
-                ->join('subs', 'subs.id', '=', $table . '.sub_id')
-                ->join('pubs', 'pubs.id', '=', $table . '.pub_id')
+                ->join('subs', 'subs.id', '=', 'leads.sub_id')
+                ->join('pubs', 'pubs.id', '=', 'leads.pub_id')
                 ->join('pub_lists', 'pub_lists.id', '=', 'pubs.pub_list_id')
                 ->join('offers', 'offers.id', '=', 'pubs.offer_id')
                 ->leftJoin('traffic_sources', 'traffic_sources.id', '=', 'convertions.traffic_source_id')
                 ->select($col)
-                ->whereNotBetween($table . '.date_history', [$date_start, $date_end])
-                ->whereNotIn($table . '.pub_id', $pubs_lists)
+                ->whereNotBetween('leads.date_history', [$date_start, $date_end])
+                ->whereNotIn('leads.pub_id', $pubs_lists)
                 ->filterFields()
-                ->groupBy($table . '.phone');
+                ->groupBy('leads.phone');
         }
 
         return $leads;
@@ -333,45 +329,39 @@ class LeadApiRepository extends EloquentRepository
 
     public function getCplOut(string $date_start, string $date_end, array $pubs_lists, bool $not = true): ?EloquentCollection
     {
-        $model = request()->input('url_switch') == 'tracking-campaign' ? new TrackingLead() : new Lead();
-        $table = $model->getTable();
-
-        return Convertion::join($table, function ($join) use ($date_start, $date_end, $table) {
-            $join->on($table . '.phone', '=', 'convertions.phone_id')
+        return Convertion::join('leads', function ($join) use ($date_start, $date_end) {
+            $join->on('leads.phone', '=', 'convertions.phone_id')
                 ->whereBetween('convertions.date_history', [$date_start, $date_end]);
         })
-            ->join('subs', 'subs.id', '=', $table . '.sub_id')
-            ->join('pubs', 'pubs.id', '=', $table . '.pub_id')
+            ->join('subs', 'subs.id', '=', 'leads.sub_id')
+            ->join('pubs', 'pubs.id', '=', 'leads.pub_id')
             ->join('pub_lists', 'pub_lists.id', '=', 'pubs.pub_list_id')
             ->join('offers', 'offers.id', '=', 'convertions.offer_id')
             ->leftJoin('traffic_sources', 'traffic_sources.id', '=', 'convertions.traffic_source_id')
-            ->selectRaw('MAX(' . $table . '.cpl) as cpl')
-            ->whereNotBetween($table . '.date_history', [$date_start, $date_end])
-            ->when($not, fn ($query) => $query->whereNotIn($table . '.pub_id', $pubs_lists))
+            ->selectRaw(self::MAX_CPL)
+            ->whereNotBetween('leads.date_history', [$date_start, $date_end])
+            ->when($not, fn ($query) => $query->whereNotIn('leads.pub_id', $pubs_lists))
             ->filterFields()
-            ->groupBy($table . '.phone')
+            ->groupBy('leads.phone')
             ->get();
     }
 
     public function getCplIn(string $date_start, string $date_end, array $pubs_lists, bool $not = true): ?EloquentCollection
     {
-        $model = request()->input('url_switch') == 'tracking-campaign' ? new TrackingLead() : new Lead();
-        $table = $model->getTable();
-
-        return Convertion::rightJoin($table, function ($join) use ($date_start, $date_end, $table) {
-            $join->on($table . '.phone', '=', 'convertions.phone_id')
+        return Convertion::rightJoin('leads', function ($join) use ($date_start, $date_end) {
+            $join->on('leads.phone', '=', 'convertions.phone_id')
                 ->whereBetween('convertions.date_history', [$date_start, $date_end]);
         })
-            ->join('subs', 'subs.id', '=', $table . '.sub_id')
-            ->join('pubs', 'pubs.id', '=', $table . '.pub_id')
+            ->join('subs', 'subs.id', '=', 'leads.sub_id')
+            ->join('pubs', 'pubs.id', '=', 'leads.pub_id')
             ->join('pub_lists', 'pub_lists.id', '=', 'pubs.pub_list_id')
             ->join('offers', 'offers.id', '=', 'pubs.offer_id')
             ->leftJoin('traffic_sources', 'traffic_sources.id', '=', 'convertions.traffic_source_id')
-            ->selectRaw('MAX(' . $table . '.cpl) as cpl')
-            ->whereBetween($table . '.date_history', [$date_start, $date_end])
-            ->when($not, fn ($query) => $query->whereNotIn($table . '.pub_id', $pubs_lists))
+            ->selectRaw(self::MAX_CPL)
+            ->whereBetween('leads.date_history', [$date_start, $date_end])
+            ->when($not, fn ($query) => $query->whereNotIn('leads.pub_id', $pubs_lists))
             ->filterFields()
-            ->groupBy($table . '.phone')
+            ->groupBy('leads.phone')
             ->get();
     }
 
@@ -386,7 +376,7 @@ class LeadApiRepository extends EloquentRepository
             ->join('pub_lists', 'pub_lists.id', '=', 'pubs.pub_list_id')
             ->join('offers', 'offers.id', '=', 'pubs.offer_id')
             ->leftJoin('traffic_sources', 'traffic_sources.id', '=', 'convertions.traffic_source_id')
-            ->selectRaw('MAX(leads.cpl) as cpl')
+            ->selectRaw(self::MAX_CPL)
             ->whereBetween('leads.date_history', [$date_start, $date_end])
             ->when($not, fn ($query) => $query->whereNotIn('leads.pub_id', $pubs_lists))
             ->where(function ($q) {
@@ -400,21 +390,18 @@ class LeadApiRepository extends EloquentRepository
 
     public function getTotalConvertions(string $date_start, string $date_end, string $columns, array $pubs_lists, bool $sale, bool $date, bool $not = true): ?Convertion
     {
-        $model = request()->input('url_switch') == 'tracking-campaign' ? new TrackingLead() : new Lead();
-        $table = $model->getTable();
-
         return Convertion::selectRaw($columns)
-            ->join($table, function ($join) use ($date_start, $date_end, $table) {
-                $join->on($table . '.phone', '=', 'convertions.phone_id')
+            ->join('leads', function ($join) use ($date_start, $date_end) {
+                $join->on('leads.phone', '=', 'convertions.phone_id')
                     ->whereBetween('convertions.date_history', [$date_start, $date_end]);
             })
-            ->join('subs', 'subs.id', '=', $table . '.sub_id')
-            ->join('pubs', 'pubs.id', '=', $table . '.pub_id')
+            ->join('subs', 'subs.id', '=', 'leads.sub_id')
+            ->join('pubs', 'pubs.id', '=', 'leads.pub_id')
             ->join('offers', 'offers.id', '=', 'convertions.offer_id')
             ->leftJoin('traffic_sources', 'traffic_sources.id', '=', 'convertions.traffic_source_id')
-            ->when($sale, fn ($query) => $query->whereBetween($table . '.date_history', [$date_start, $date_end]))
-            ->when($date, fn ($query) => $query->whereNotBetween($table . '.date_history', [$date_start, $date_end]))
-            ->when($not, fn ($query) => $query->whereNotIn($table . '.pub_id', $pubs_lists))
+            ->when($sale, fn ($query) => $query->whereBetween('leads.date_history', [$date_start, $date_end]))
+            ->when($date, fn ($query) => $query->whereNotBetween('leads.date_history', [$date_start, $date_end]))
+            ->when($not, fn ($query) => $query->whereNotIn('leads.pub_id', $pubs_lists))
             ->filterFields()
             ->first();
     }
@@ -422,27 +409,26 @@ class LeadApiRepository extends EloquentRepository
     public function getTotalConvertionsCampaign(string $date_start, string $date_end, bool $sale, bool $date): array
     {
         $view_by = request()->input('view_by', 'leads.campaign_name_id') ?? 'leads.campaign_name_id';
-        $model = request()->input('url_switch') == 'tracking-campaign' ? new TrackingLead() : new Lead();
-        $table = $model->getTable();
+
         $columns_group = 'campaign_name_id, subs.sub_id, pubs.pub_list_id,pub_lists.name as vendors_yp,traffic_sources.name as vendors_td,sub_id2,sub_id3,sub_id4,leads.pub_id,traffic_sources.id as traffic_source_id';
         $columns_empty = ' "" as campaign_name_id, "" as sub_id, "" as pub_list_id, "" as  vendors_yp, "" as vendors_td';
-        $columns = $view_by . ' as view_by, sum(revenue) AS revenue,sum(convertions.cpl) AS cpl,sum(calls) AS calls, sum(converted) AS converted, 0 as leads, sum(answered) as answered,' . $table . '.type';
+        $columns = $view_by . ' as view_by, sum(revenue) AS revenue,sum(convertions.cpl) AS cpl,sum(calls) AS calls, sum(converted) AS converted, 0 as leads, sum(answered) as answered, leads.type';
         $group_by = $view_by == 'leads.campaign_name_id' ? ['leads.campaign_name_id', 'leads.sub_id3', 'leads.pub_id', 'convertions.traffic_source_id'] : $view_by;
 
-        return $model::selectRaw($columns)
-            ->when($view_by == $table . '.type', fn ($query) => $query->selectRaw($columns_empty))
-            ->when($view_by != $table . '.type', fn ($query) => $query->selectRaw($columns_group))
-            ->join('convertions', function ($join) use ($date_start, $date_end, $table) {
-                $join->on($table . '.phone', '=', 'convertions.phone_id')
+        return Lead::selectRaw($columns)
+            ->when($view_by == 'leads.type', fn ($query) => $query->selectRaw($columns_empty))
+            ->when($view_by != 'leads.type', fn ($query) => $query->selectRaw($columns_group))
+            ->join('convertions', function ($join) use ($date_start, $date_end) {
+                $join->on('leads.phone', '=', 'convertions.phone_id')
                     ->whereBetween('convertions.date_history', [$date_start, $date_end]);
             })
-            ->join('subs', 'subs.id', '=', $table . '.sub_id')
-            ->join('pubs', 'pubs.id', '=', $table . '.pub_id')
+            ->join('subs', 'subs.id', '=', 'leads.sub_id')
+            ->join('pubs', 'pubs.id', '=', 'leads.pub_id')
             ->join('offers', 'offers.id', '=', 'convertions.offer_id')
             ->join('pub_lists', 'pub_lists.id', '=', 'pubs.pub_list_id')
             ->join('traffic_sources', 'traffic_sources.id', '=', 'convertions.traffic_source_id')
-            ->when($sale, fn ($query) => $query->whereBetween($table . '.date_history', [$date_start, $date_end]))
-            ->when($date, fn ($query) => $query->whereNotBetween($table . '.date_history', [$date_start, $date_end]))
+            ->when($sale, fn ($query) => $query->whereBetween('leads.date_history', [$date_start, $date_end]))
+            ->when($date, fn ($query) => $query->whereNotBetween('leads.date_history', [$date_start, $date_end]))
             ->filterFields()
             ->groupBy($group_by)
             ->get()
@@ -749,26 +735,23 @@ class LeadApiRepository extends EloquentRepository
     {
         $view_by = request()->input('view_by', 'leads.campaign_name_id') ?? 'leads.campaign_name_id';
 
-        $model = request()->input('url_switch') == 'tracking-campaign' ? new TrackingLead() : new Lead();
-        $table = $model->getTable();
-
-        $columns_cpl = $view_by . ' as view_by,subs.sub_id, pubs.pub_list_id, 1 as leads,CONCAT(leads.campaign_name_id,"",leads.sub_id3,"",leads.pub_id,"",ifnull(convertions.traffic_source_id,66666)) as cm_pub,campaign_name_id,pub_lists.name as vendors_yp,' . $table . '.type,leads.sub_id3,leads.sub_id2,leads.sub_id4,ifnull(convertions.traffic_source_id,66666) as traffic_source_id,leads.pub_id';
+        $columns_cpl = $view_by . ' as view_by,subs.sub_id, pubs.pub_list_id, 1 as leads,CONCAT(leads.campaign_name_id,"",leads.sub_id3,"",leads.pub_id,"",ifnull(convertions.traffic_source_id,66666)) as cm_pub,campaign_name_id,pub_lists.name as vendors_yp,leads.type,leads.sub_id3,leads.sub_id2,leads.sub_id4,ifnull(convertions.traffic_source_id,66666) as traffic_source_id,leads.pub_id';
         $group_by = ['leads.phone', 'leads.campaign_name_id', 'leads.sub_id3', 'leads.pub_id', 'convertions.traffic_source_id'];
 
         return Convertion::selectRaw($columns_cpl)
             ->when(
                 $sale,
-                fn ($query) => $query->rightJoin($table, function ($join) use ($date_start, $date_end, $table) {
-                    $join->on($table . '.phone', '=', 'convertions.phone_id')
+                fn ($query) => $query->rightJoin('leads', function ($join) use ($date_start, $date_end) {
+                    $join->on('leads.phone', '=', 'convertions.phone_id')
                         ->whereBetween('convertions.date_history', [$date_start, $date_end]);
-                })->whereBetween($table . '.date_history', [$date_start, $date_end])->selectRaw('MAX(' . $table . '.cpl) as cpl')
+                })->whereBetween('leads.date_history', [$date_start, $date_end])->selectRaw(self::MAX_CPL)
             )
             ->when(
                 $date,
-                fn ($query) => $query->join($table, function ($join) use ($date_start, $date_end, $table) {
-                    $join->on($table . '.phone', '=', 'convertions.phone_id')
+                fn ($query) => $query->join('leads', function ($join) use ($date_start, $date_end) {
+                    $join->on('leads.phone', '=', 'convertions.phone_id')
                         ->whereBetween('convertions.date_history', [$date_start, $date_end]);
-                })->whereNotBetween($table . '.date_history', [$date_start, $date_end])->selectRaw('0 as cpl')
+                })->whereNotBetween('leads.date_history', [$date_start, $date_end])->selectRaw('0 as cpl')
             )
             ->when(
                 $ts,
@@ -777,8 +760,8 @@ class LeadApiRepository extends EloquentRepository
                         ->orWhereNull('convertions.traffic_source_id');
                 })
             )
-            ->join('subs', 'subs.id', '=', $table . '.sub_id')
-            ->join('pubs', 'pubs.id', '=', $table . '.pub_id')
+            ->join('subs', 'subs.id', '=', 'leads.sub_id')
+            ->join('pubs', 'pubs.id', '=', 'leads.pub_id')
             ->join('pub_lists', 'pub_lists.id', '=', 'pubs.pub_list_id')
             ->join('offers', 'offers.id', '=', 'pubs.offer_id')
             ->leftJoin('traffic_sources', 'traffic_sources.id', '=', 'convertions.traffic_source_id')

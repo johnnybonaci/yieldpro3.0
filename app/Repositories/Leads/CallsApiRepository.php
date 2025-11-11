@@ -12,40 +12,137 @@ use App\Support\Collection as PersonalCollection;
 
 class CallsApiRepository extends EloquentRepository
 {
+    // Query constants
+    public const JSON_INSURANCE_QUERY = 'LOWER(JSON_EXTRACT(recordings.multiple, "$.existing_insurance_name")) LIKE ?';
+
+    public const JSON_CALL_ENDING_FIELD = 'recordings.multiple->call_ending_sooner_result';
+
+    public const JSON_CONTAINS_CATEGORY = "JSON_CONTAINS(recordings.multiple, JSON_OBJECT('category', ?), '$.call_ending_sooner_reasons')";
+
+    public const CHILDREN_KEY = '_children';
+
+    /**
+     * Parse and normalize array input from request.
+     */
+    private function parseArrayInput(string $key, array $default = []): array
+    {
+        $value = request()->input($key, $default);
+        $value = is_array($value) ? $value : explode(',', $value);
+
+        return array_filter($value);
+    }
+
+    /**
+     * Get common filter parameters from request.
+     */
+    private function getFilterParameters(): array
+    {
+        return [
+            'buyers' => $this->parseArrayInput('select_buyers'),
+            'states' => $this->parseArrayInput('select_states'),
+            'insurances' => $this->parseArrayInput('select_insurances'),
+            'hasCallIssues' => is_null(request()->input('call_issues')) ? null : request()->boolean('call_issues'),
+            'issuesTypes' => request()->collect('select_issues_types'),
+        ];
+    }
+
+    /**
+     * Apply common filters to query builder.
+     */
+    private function applyCommonFilters(Builder $query, array $filters): Builder
+    {
+        $this->applyBuyersFilter($query, $filters['buyers']);
+        $this->applyStatesFilter($query, $filters['states']);
+        $this->applyInsurancesFilter($query, $filters['insurances']);
+        $this->applyCallIssuesFilter($query, $filters);
+
+        return $query;
+    }
+
+    /**
+     * Apply buyers filter.
+     */
+    private function applyBuyersFilter(Builder $query, array $buyers): void
+    {
+        if (empty($buyers)) {
+            return;
+        }
+
+        $query->where(function ($q) use ($buyers) {
+            foreach ($buyers as $buyer) {
+                $q->orWhere('buyers.id', '=', "$buyer");
+            }
+        });
+    }
+
+    /**
+     * Apply states filter.
+     */
+    private function applyStatesFilter(Builder $query, array $states): void
+    {
+        if (empty($states)) {
+            return;
+        }
+
+        $query->where(function ($q) use ($states) {
+            foreach ($states as $state) {
+                $q->orWhere('leads.state', 'LIKE', "%$state%");
+            }
+        });
+    }
+
+    /**
+     * Apply insurances filter.
+     */
+    private function applyInsurancesFilter(Builder $query, array $insurances): void
+    {
+        if (empty($insurances)) {
+            return;
+        }
+
+        $query->where(function ($q) use ($insurances) {
+            foreach ($insurances as $insurance) {
+                $q->orWhereRaw(self::JSON_INSURANCE_QUERY, ['%' . strtolower($insurance) . '%']);
+            }
+        });
+    }
+
+    /**
+     * Apply call issues filter.
+     */
+    private function applyCallIssuesFilter(Builder $query, array $filters): void
+    {
+        if (is_null($filters['hasCallIssues'])) {
+            return;
+        }
+
+        $query->where(self::JSON_CALL_ENDING_FIELD, $filters['hasCallIssues']);
+
+        if ($filters['hasCallIssues'] && count($filters['issuesTypes']) > 0) {
+            $query->where(function ($q) use ($filters) {
+                foreach ($filters['issuesTypes'] as $issue) {
+                    $q->orwhereRaw(self::JSON_CONTAINS_CATEGORY, [$issue]);
+                }
+            });
+        }
+    }
+
     /**
      * Return Totals Leads from date start & date end.
      */
     public function calls(string $date_start, string $date_end): Builder
     {
         $provider_id = env('TRACKDRIVE_PROVIDER_ID', 2);
-
-        $buyers = request()->input('select_buyers', []);
-        $buyers = is_array($buyers) ? $buyers : explode(',', $buyers);
-        $buyers = array_filter($buyers);
-
-        $states = request()->input('select_states', []);
-        $states = is_array($states) ? $states : explode(',', $states);
-        $states = array_filter($states);
-
-        $insurances = request()->input('select_insurances', []);
-        $insurances = is_array($insurances) ? $insurances : explode(',', $insurances);
-        $insurances = array_filter($insurances);
-
-        $hasCallIssues = request()->input('call_issues');
-        $hasCallIssues = is_null($hasCallIssues) ? null : request()->boolean('call_issues');
-
-        $issuesTypes = request()->collect('select_issues_types');
-
+        $filters = $this->getFilterParameters();
         $phone = request()->input('phone', null);
 
         $col = ['convertions.id', 'convertions.phone_id', 'convertions.status', 'convertions.revenue', 'convertions.cpl', 'convertions.durations', 'convertions.calls', 'convertions.converted', 'convertions.terminating_phone', 'convertions.did_number_id', 'convertions.offer_id', 'convertions.created_at as date_sale', 'recordings.billable', 'recordings.status as status_t', 'offers.name as offers', 'buyers.name as buyers', 'buyers.id as buyer_id', 'traffic_sources.name as vendors_td', 'traffic_sources.id as traffic_source_id', 'pubs.pub_list_id', 'recordings.url', 'recordings.transcript', 'recordings.multiple', 'recordings.qa_status', 'recordings.qa_td_status', 'recordings.insurance', 'leads.state', 'leads.sub_id5'];
 
-        return Convertion::select($col)
+        $query = Convertion::select($col)
             ->join('leads', 'leads.phone', '=', 'convertions.phone_id')
             ->leftJoin('recordings', 'recordings.id', '=', 'convertions.id')
             ->join('pubs', 'pubs.id', '=', 'leads.pub_id')
             ->join('offers', 'offers.id', '=', 'convertions.offer_id')
-
             ->leftJoin('buyers', function ($join) use ($provider_id) {
                 $join->on('buyers.id', '=', 'convertions.buyer_id')
                     ->where('buyers.provider_id', '=', $provider_id);
@@ -57,34 +154,9 @@ class CallsApiRepository extends EloquentRepository
             ->whereBetween('convertions.date_history', [$date_start, $date_end])
             ->when($phone, function ($query, $phone) {
                 return $query->where('convertions.phone_id', $phone);
-            })
-            ->where(function ($query) use ($buyers) {
-                foreach ($buyers as $buyer) {
-                    $query->orWhere('buyers.id', '=', "$buyer");
-                }
-            })
-            ->where(function ($query) use ($states) {
-                foreach ($states as $state) {
-                    $query->orWhere('leads.state', 'LIKE', "%$state%");
-                }
-            })
-            ->where(function ($query) use ($insurances) {
-                foreach ($insurances as $insurance) {
-                    $query->orWhereRaw('LOWER(JSON_EXTRACT(recordings.multiple, "$.existing_insurance_name")) LIKE ?', ['%' . strtolower($insurance) . '%']);
-                }
-            })
-            ->when(!is_null($hasCallIssues), function ($query) use ($hasCallIssues, $issuesTypes) {
-                $query->where('recordings.multiple->call_ending_sooner_result', $hasCallIssues);
+            });
 
-                if ($hasCallIssues && count($issuesTypes) > 0) {
-                    $query->where(function ($query) use ($issuesTypes) {
-                        foreach ($issuesTypes as $issue) {
-                            $query->orwhereRaw("JSON_CONTAINS(recordings.multiple, JSON_OBJECT('category', ?), '$.call_ending_sooner_reasons')", [$issue]);
-                        }
-                    });
-                }
-            })
-            ->filterFields();
+        return $this->applyCommonFilters($query, $filters)->filterFields();
     }
 
     /**
@@ -92,61 +164,23 @@ class CallsApiRepository extends EloquentRepository
      */
     public function average(string $date_start, string $date_end): array
     {
-        $buyers = request()->input('select_buyers', []);
-        $buyers = is_array($buyers) ? $buyers : explode(',', $buyers);
-        $buyers = array_filter($buyers);
-
-        $states = request()->input('select_states', []);
-        $states = is_array($states) ? $states : explode(',', $states);
-        $states = array_filter($states);
-
-        $insurances = request()->input('select_insurances', []);
-        $insurances = is_array($insurances) ? $insurances : explode(',', $insurances);
-        $insurances = array_filter($insurances);
-
-        $hasCallIssues = request()->input('call_issues');
-        $hasCallIssues = is_null($hasCallIssues) ? null : request()->boolean('call_issues');
-
-        $issuesTypes = request()->collect('select_issues_types');
+        $filters = $this->getFilterParameters();
         $columns = 'sum(convertions.revenue) as revenue,sum(convertions.cpl) as cpl,sum(convertions.calls) as calls,sum(convertions.converted) as converted,sum(convertions.answered) as answered';
         $out_count = 0;
         $out_cpl = 0;
-        $totals_convertions = Convertion::selectRaw($columns)
+
+        $query = Convertion::selectRaw($columns)
             ->leftJoin('recordings', 'recordings.id', '=', 'convertions.id')
             ->join('leads', 'leads.phone', '=', 'convertions.phone_id')
             ->join('subs', 'subs.id', '=', 'leads.sub_id')
             ->join('pubs', 'pubs.id', '=', 'leads.pub_id')
             ->join('offers', 'offers.id', '=', 'convertions.offer_id')
             ->leftJoin('buyers', 'buyers.id', '=', 'convertions.buyer_id')
-            ->whereBetween('convertions.date_history', [$date_start, $date_end])
-            ->where(function ($query) use ($buyers) {
-                foreach ($buyers as $buyer) {
-                    $query->orWhere('buyers.id', '=', "$buyer");
-                }
-            })
-            ->where(function ($query) use ($states) {
-                foreach ($states as $state) {
-                    $query->orWhere('leads.state', 'LIKE', "%$state%");
-                }
-            })
-            ->where(function ($query) use ($insurances) {
-                foreach ($insurances as $insurance) {
-                    $query->orWhereRaw('LOWER(JSON_EXTRACT(recordings.multiple, "$.existing_insurance_name")) LIKE ?', ['%' . strtolower($insurance) . '%']);
-                }
-            })
-            ->when(!is_null($hasCallIssues), function ($query) use ($hasCallIssues, $issuesTypes) {
-                $query->where('recordings.multiple->call_ending_sooner_result', $hasCallIssues);
+            ->whereBetween('convertions.date_history', [$date_start, $date_end]);
 
-                if ($hasCallIssues && count($issuesTypes) > 0) {
-                    $query->where(function ($query) use ($issuesTypes) {
-                        foreach ($issuesTypes as $issue) {
-                            $query->orwhereRaw("JSON_CONTAINS(recordings.multiple, JSON_OBJECT('category', ?), '$.call_ending_sooner_reasons')", [$issue]);
-                        }
-                    });
-                }
-            })
-            ->filterFields()->first();
-        $leads_sale_in = Convertion::leftJoin('recordings', 'recordings.id', '=', 'convertions.id')
+        $totals_convertions = $this->applyCommonFilters($query, $filters)->filterFields()->first();
+
+        $leadsQuery = Convertion::leftJoin('recordings', 'recordings.id', '=', 'convertions.id')
             ->join('leads', function ($join) use ($date_start, $date_end) {
                 $join->on('leads.phone', '=', 'convertions.phone_id')
                     ->whereBetween('convertions.date_history', [$date_start, $date_end]);
@@ -157,33 +191,9 @@ class CallsApiRepository extends EloquentRepository
             ->join('offers', 'offers.id', '=', 'pubs.offer_id')
             ->leftJoin('buyers', 'buyers.id', '=', 'convertions.buyer_id')
             ->selectRaw('MAX(leads.cpl) as cpl')
-            ->whereBetween('leads.date_history', [$date_start, $date_end])
-            ->where(function ($query) use ($buyers) {
-                foreach ($buyers as $buyer) {
-                    $query->orWhere('buyers.id', '=', "$buyer");
-                }
-            })
-            ->where(function ($query) use ($states) {
-                foreach ($states as $state) {
-                    $query->orWhere('leads.state', 'LIKE', "%$state%");
-                }
-            })
-            ->where(function ($query) use ($insurances) {
-                foreach ($insurances as $insurance) {
-                    $query->orWhereRaw('LOWER(JSON_EXTRACT(recordings.multiple, "$.existing_insurance_name")) LIKE ?', ['%' . strtolower($insurance) . '%']);
-                }
-            })
-            ->when(!is_null($hasCallIssues), function ($query) use ($hasCallIssues, $issuesTypes) {
-                $query->where('recordings.multiple->call_ending_sooner_result', $hasCallIssues);
+            ->whereBetween('leads.date_history', [$date_start, $date_end]);
 
-                if ($hasCallIssues && count($issuesTypes) > 0) {
-                    $query->where(function ($query) use ($issuesTypes) {
-                        foreach ($issuesTypes as $issue) {
-                            $query->orwhereRaw("JSON_CONTAINS(recordings.multiple, JSON_OBJECT('category', ?), '$.call_ending_sooner_reasons')", [$issue]);
-                        }
-                    });
-                }
-            })
+        $leads_sale_in = $this->applyCommonFilters($leadsQuery, $filters)
             ->filterFields()
             ->groupBy('leads.phone')
             ->get();
@@ -203,56 +213,17 @@ class CallsApiRepository extends EloquentRepository
      */
     public function records(string $date_start, string $date_end): int
     {
-        $buyers = request()->input('select_buyers', []);
-        $buyers = is_array($buyers) ? $buyers : explode(',', $buyers);
-        $buyers = array_filter($buyers);
+        $filters = $this->getFilterParameters();
 
-        $states = request()->input('select_states', []);
-        $states = is_array($states) ? $states : explode(',', $states);
-        $states = array_filter($states);
-
-        $insurances = request()->input('select_insurances', []);
-        $insurances = is_array($insurances) ? $insurances : explode(',', $insurances);
-        $insurances = array_filter($insurances);
-
-        $hasCallIssues = request()->input('call_issues');
-        $hasCallIssues = is_null($hasCallIssues) ? null : request()->boolean('call_issues');
-
-        $issuesTypes = request()->collect('select_issues_types');
-
-        $a = Convertion::selectRaw('count(convertions.id) as calls')
+        $query = Convertion::selectRaw('count(convertions.id) as calls')
             ->leftJoin('recordings', 'recordings.id', '=', 'convertions.id')
             ->join('leads', 'leads.phone', '=', 'convertions.phone_id')
             ->join('pubs', 'pubs.id', '=', 'leads.pub_id')
             ->join('offers', 'offers.id', '=', 'convertions.offer_id')
             ->leftJoin('buyers', 'buyers.id', '=', 'convertions.buyer_id')
-            ->whereBetween('convertions.date_history', [$date_start, $date_end])
-            ->where(function ($query) use ($buyers) {
-                foreach ($buyers as $buyer) {
-                    $query->orWhere('buyers.id', '=', "$buyer");
-                }
-            })
-            ->where(function ($query) use ($states) {
-                foreach ($states as $state) {
-                    $query->orWhere('leads.state', 'LIKE', "%$state%");
-                }
-            })
-            ->where(function ($query) use ($insurances) {
-                foreach ($insurances as $insurance) {
-                    $query->orWhereRaw('LOWER(JSON_EXTRACT(recordings.multiple, "$.existing_insurance_name")) LIKE ?', ['%' . strtolower($insurance) . '%']);
-                }
-            })
-            ->when(!is_null($hasCallIssues), function ($query) use ($hasCallIssues, $issuesTypes) {
-                $query->where('recordings.multiple->call_ending_sooner_result', $hasCallIssues);
+            ->whereBetween('convertions.date_history', [$date_start, $date_end]);
 
-                if ($hasCallIssues && count($issuesTypes) > 0) {
-                    $query->where(function ($query) use ($issuesTypes) {
-                        foreach ($issuesTypes as $issue) {
-                            $query->orwhereRaw("JSON_CONTAINS(recordings.multiple, JSON_OBJECT('category', ?), '$.call_ending_sooner_reasons')", [$issue]);
-                        }
-                    });
-                }
-            })
+        $a = $this->applyCommonFilters($query, $filters)
             ->filterFields()
             ->first();
 
@@ -280,8 +251,7 @@ class CallsApiRepository extends EloquentRepository
             $date_end = now()->subHours()->format('Y-m-d H:i:s');
         }
         $provider_id = env('TRACKDRIVE_PROVIDER_ID', 2);
-        $buyers = request()->input('select_buyers', []);
-        $buyers = is_array($buyers) ? $buyers : explode(',', $buyers);
+        $buyers = $this->parseArrayInput('select_buyers');
         $viewBy = request()->input('view_by', 'convertions.buyer_id') ?? 'convertions.buyer_id';
         $groupByView = $viewBy == 'convertions.buyer_id' ? 'buyers.name' : 'traffic_sources.name';
 
@@ -335,8 +305,7 @@ class CallsApiRepository extends EloquentRepository
         }
 
         $provider_id = env('TRACKDRIVE_PROVIDER_ID', 2);
-        $buyers = request()->input('select_buyers', []);
-        $buyers = is_array($buyers) ? $buyers : explode(',', $buyers);
+        $buyers = $this->parseArrayInput('select_buyers');
         $viewBy = request()->input('view_by', 'convertions.buyer_id') ?? 'convertions.buyer_id';
         $groupByView = $viewBy == 'convertions.buyer_id' ? 'buyers.name' : 'traffic_sources.name';
 
@@ -448,7 +417,7 @@ class CallsApiRepository extends EloquentRepository
                 'total_cpa' => $item->sum('total_sales') > 0 ? round($item->sum('total_cost') / $item->sum('total_sales'), 2) : 0,
                 'total_ucr' => $item->sum('total_unique') > 0 ? round($item->sum('total_billables') / $item->sum('total_unique') * 100, 2) : 0,
                 'total_unique' => $item->sum('total_unique'),
-                '_children' => $item->toArray(),
+                self::CHILDREN_KEY => $item->toArray(),
                 'buyer_name' => $key,
             ]];
         });
@@ -461,11 +430,11 @@ class CallsApiRepository extends EloquentRepository
                     default => 'Same',
                 };
             }
-            foreach ($item['_children'] as $keychild => $value) {
+            foreach ($item[self::CHILDREN_KEY] as $keychild => $value) {
                 $value['total_ucr_1'] = 0;
                 $children[$keychild] = $value;
             }
-            $item['_children'] = $children;
+            $item[self::CHILDREN_KEY] = $children;
 
             return [$key => $item];
         });
@@ -499,7 +468,7 @@ class CallsApiRepository extends EloquentRepository
                 'state' => '',
                 'total_billables' => $billables,
                 'total_rpc' => $unique > 0 ? round(($billables * $revenue) / $unique, 2) : 0,
-                '_children' => $item->toArray(),
+                self::CHILDREN_KEY => $item->toArray(),
             ]];
         });
 
@@ -522,7 +491,7 @@ class CallsApiRepository extends EloquentRepository
 
             return [$key => [
                 'total_ucr_1' => $item->sum('total_unique') > 0 ? round($item->sum('total_billables') / $item->sum('total_unique') * 100, 2) : 0,
-                '_children' => $total,
+                self::CHILDREN_KEY => $total,
             ]];
         });
 

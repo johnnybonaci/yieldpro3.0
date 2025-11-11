@@ -9,10 +9,6 @@ use Illuminate\Database\Eloquent\Builder;
 
 class JornayaLeadRepository
 {
-    public function __construct()
-    {
-    }
-
     /**
      * Save Jornaya Lead id.
      */

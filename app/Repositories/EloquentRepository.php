@@ -12,10 +12,6 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class EloquentRepository
 {
-    public function __construct()
-    {
-    }
-
     /**
      * find by id.
      */

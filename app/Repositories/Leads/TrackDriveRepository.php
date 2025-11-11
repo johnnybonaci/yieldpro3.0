@@ -14,10 +14,6 @@ class TrackDriveRepository extends LeadApiRepository
 {
     public const KEY = 'TRACK_DRIVE_API_KEY_';
 
-    public function __construct()
-    {
-    }
-
     /**
      * Summary of Resource.
      */
@@ -25,9 +21,24 @@ class TrackDriveRepository extends LeadApiRepository
     {
         $offers = $data['offers_data'];
         $provider_id = $data['provider_id'];
-        $smid = Config::get('services.trackdrive.smid');
-        $smid = $smid[array_rand($smid)];
-        $datatd = [
+
+        $datatd = $this->buildBaseData($data, $provider_id, $offers);
+        $this->addOptionalStateData($datatd, $data);
+        $this->addWhitelistData($datatd, $data);
+        $this->addExtendedData($datatd, $data);
+
+        return collect($datatd);
+    }
+
+    /**
+     * Build base tracking data.
+     * @param mixed $offers
+     */
+    private function buildBaseData(array $data, int $provider_id, $offers): array
+    {
+        $smid = $this->getRandomSmid();
+
+        return [
             'lead_token' => env($provider_id . '_' . self::KEY . strtoupper($data['type'])),
             'first_name' => $data['first_name'],
             'last_name' => $data['last_name'],
@@ -50,42 +61,100 @@ class TrackDriveRepository extends LeadApiRepository
             'utm_campaign' => $data['campaign_name_id'],
             'utm_source' => $data['utm_source'],
         ];
+    }
+
+    /**
+     * Get random SMID from config.
+     */
+    private function getRandomSmid(): string
+    {
+        $smid = Config::get('services.trackdrive.smid');
+
+        return $smid[array_rand($smid)];
+    }
+
+    /**
+     * Add optional state data.
+     */
+    private function addOptionalStateData(array &$datatd, array $data): void
+    {
         if (!empty($data['state'])) {
             $datatd['custom_state'] = $data['state'];
         }
+    }
+
+    /**
+     * Add whitelist data if applicable.
+     */
+    private function addWhitelistData(array &$datatd, array $data): void
+    {
         if (array_key_exists('white_list', $data) && $data['white_list']) {
             $datatd['whitelist'] = true;
         }
-        if (is_array($data['data'])) {
-            if (!empty($data['data']['dob'])) {
-                $dob = date_parse($data['data']['dob']);
+    }
 
-                if ($dob && isset($dob['year'], $dob['month'], $dob['day']) && checkdate($dob['month'], $dob['day'], $dob['year'])) {
-                    try {
-                        $datatd['dob'] = Carbon::createFromDate($dob['year'], $dob['month'], $dob['day'])->format('Y-m-d');
-                    } catch (Exception $e) {
-                        Log::error('Error al crear la fecha de nacimiento: ' . $e->getMessage());
-                    }
-                }
-            }
-            if (array_key_exists('city', $data['data'])) {
-                $datatd['city'] = $data['data']['city'];
-            }
-            if (array_key_exists('address', $data['data'])) {
-                $datatd['address'] = $data['data']['address'];
-            }
-            if (array_key_exists('gender', $data['data'])) {
-                $datatd['gender'] = $data['data']['gender'];
-            }
-            if (array_key_exists('gclid', $data['data'])) {
-                $datatd['gclid'] = $data['data']['gclid'];
-            }
-            if ($data['pub_id'] == 172) {
-                $datatd['costumer_state'] = $data['state'];
-            }
+    /**
+     * Add extended data from data array.
+     */
+    private function addExtendedData(array &$datatd, array $data): void
+    {
+        if (!is_array($data['data'])) {
+            return;
         }
 
-        return collect($datatd);
+        $this->addDateOfBirth($datatd, $data['data']);
+        $this->addOptionalFields($datatd, $data['data']);
+        $this->addSpecialPubData($datatd, $data);
+    }
+
+    /**
+     * Add date of birth if valid.
+     */
+    private function addDateOfBirth(array &$datatd, array $dataArray): void
+    {
+        if (empty($dataArray['dob'])) {
+            return;
+        }
+
+        $dob = date_parse($dataArray['dob']);
+
+        if (!$dob || !isset($dob['year'], $dob['month'], $dob['day'])) {
+            return;
+        }
+
+        if (!checkdate($dob['month'], $dob['day'], $dob['year'])) {
+            return;
+        }
+
+        try {
+            $datatd['dob'] = Carbon::createFromDate($dob['year'], $dob['month'], $dob['day'])->format('Y-m-d');
+        } catch (Exception $e) {
+            Log::error('Error al crear la fecha de nacimiento: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Add optional fields from data array.
+     */
+    private function addOptionalFields(array &$datatd, array $dataArray): void
+    {
+        $optionalFields = ['city', 'address', 'gender', 'gclid'];
+
+        foreach ($optionalFields as $field) {
+            if (array_key_exists($field, $dataArray)) {
+                $datatd[$field] = $dataArray[$field];
+            }
+        }
+    }
+
+    /**
+     * Add special pub-specific data.
+     */
+    private function addSpecialPubData(array &$datatd, array $data): void
+    {
+        if ($data['pub_id'] == 172) {
+            $datatd['costumer_state'] = $data['state'];
+        }
     }
 
     public function postBack(array $data): ?array

@@ -6,10 +6,6 @@ use App\Models\Leads\LeadMetric;
 
 class LeadMetricRepository
 {
-    public function __construct()
-    {
-    }
-
     /**
      * Summary of setCampaignId.
      */

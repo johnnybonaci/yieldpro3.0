@@ -27,19 +27,24 @@ use App\Http\Controllers\Api\Users\UserController as UserApiController;
 use App\Http\Controllers\Api\Settings\ProviderController as ProviderApiController;
 use App\Http\Controllers\Api\Settings\PhoneRoomController as PhoneRoomApiController;
 
+// Middleware constants
+const AUTH_SANCTUM = 'auth:sanctum';
+const LEAD_API_ABILITIES = 'abilities:lead.api:create,lead.api:read';
+const CONFIG_PARAM = '/{config}';
+
 /*
 |--------------------------------------------------------------------------
 | Authentication Routes
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
+Route::middleware(AUTH_SANCTUM)->prefix('auth')->group(function () {
     Route::get('user', [UserApiController::class, 'authenticated'])->name('auth.user');
     Route::get('roles', [RoleController::class, 'index'])->name('auth.roles.list');
-    Route::middleware('auth:sanctum')->get('/auth/user/{userId}', [UserApiController::class, 'getUserById']);
+    Route::middleware(AUTH_SANCTUM)->get('/auth/user/{userId}', [UserApiController::class, 'getUserById']);
 });
 
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->get('/user', function (Request $request) {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->get('/user', function (Request $request) {
     return $request->user();
 });
 /*
@@ -55,7 +60,7 @@ Route::post('token', [AccessTokenController::class, 'token'])->name('auth.token'
 | Data Routes - READ operations (from web.php)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->prefix('data')->group(function () {
+Route::middleware(AUTH_SANCTUM)->prefix('data')->group(function () {
     // Metadata
     Route::get('/', [CallController::class, 'metadata'])->name('lead.api.metadata');
 
@@ -80,7 +85,6 @@ Route::middleware('auth:sanctum')->prefix('data')->group(function () {
     // Calls
     Route::get('calls', [CallController::class, 'index'])->name('call.api.index');
     Route::get('calls-old', [CallController::class, 'index_old'])->name('call.api.index_old');
-    Route::get('calls-new', [CallController::class, 'index_new'])->name('call.api.index_new');
 
     // Reports and metrics
     Route::get('jornaya', [JornayaController::class, 'index'])->name('jornaya.api.index');
@@ -127,7 +131,7 @@ Route::middleware('auth:sanctum')->prefix('data')->group(function () {
 | API Leads - WRITE operations
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('leads')->group(function () {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('leads')->group(function () {
     Route::post('data', [LeadController::class, 'store'])->name('lead.api.store');
     Route::post('update', [LeadController::class, 'update'])->name('lead.api.update');
 });
@@ -137,16 +141,16 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
 | Media Alpha API
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('media-alpha')->group(function () {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('media-alpha')->group(function () {
     Route::prefix('configs')->group(function () {
         Route::get('/', [MediaAlphaConfigController::class, 'index']);
         Route::post('/', [MediaAlphaConfigController::class, 'store']);
         Route::get('/active', [MediaAlphaConfigController::class, 'active']);
         Route::get('/placement/{placementId}', [MediaAlphaConfigController::class, 'getByPlacementId']);
-        Route::get('/{config}', [MediaAlphaConfigController::class, 'show']);
-        Route::put('/{config}', [MediaAlphaConfigController::class, 'update']);
-        Route::delete('/{config}', [MediaAlphaConfigController::class, 'destroy']);
-        Route::patch('/{config}/toggle-active', [MediaAlphaConfigController::class, 'toggleActive']);
+        Route::get(CONFIG_PARAM, [MediaAlphaConfigController::class, 'show']);
+        Route::put(CONFIG_PARAM, [MediaAlphaConfigController::class, 'update']);
+        Route::delete(CONFIG_PARAM, [MediaAlphaConfigController::class, 'destroy']);
+        Route::patch(CONFIG_PARAM . '/toggle-active', [MediaAlphaConfigController::class, 'toggleActive']);
     });
     Route::prefix('responses')->group(function () {
         Route::get('/', [MediaAlphaResponseController::class, 'index'])
@@ -170,7 +174,7 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
 | API Calls
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('calls')->group(function () {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('calls')->group(function () {
     Route::post('phoneroom', [PhoneRoomController::class, 'store'])->name('phoneroom.api.store');
 });
 /*
@@ -178,7 +182,7 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
 | API Lead Page View
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('page')->group(function () {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('page')->group(function () {
     Route::post('views', [LeadPageViewController::class, 'store'])->name('pageviews.api.store');
 });
 /*
@@ -186,7 +190,7 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
 | API PUBS
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('pubs')->group(function () {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('pubs')->group(function () {
     Route::post('update/{pubid}', [PubIdController::class, 'update'])->name('pubid.api.update');
     Route::post('create', [PubIdController::class, 'create'])->name('pubid.api.create');
 });
@@ -196,7 +200,7 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
 | API PUBS By Offer
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('pubsoffer')->group(function () {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('pubsoffer')->group(function () {
     Route::post('update/{pub?}', [PubsController::class, 'update'])->name('pubs.api.update');
 });
 
@@ -205,7 +209,7 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
 | API OFFERS
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('offers')->group(function () {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('offers')->group(function () {
     Route::post('update/{offer}', [OfferController::class, 'update'])->name('offer.api.update');
 });
 
@@ -214,7 +218,7 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
 | API TRAFFIC SOURCE
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('trafficsource')->group(function () {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('trafficsource')->group(function () {
     Route::post('update/{traffic_source}', [TrafficSourceController::class, 'update'])->name('trafficsource.api.update');
 });
 
@@ -223,7 +227,7 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
 | API BUYER
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('buyer')->group(function () {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('buyer')->group(function () {
     Route::post('update/{buyer}', [BuyerController::class, 'update'])->name('buyer.api.update');
     Route::post('selection/', [BuyerController::class, 'selection'])->name('buyer.api.selection');
 });
@@ -233,7 +237,7 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
 | API DID NUMBER
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('did')->group(function () {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('did')->group(function () {
     Route::post('update/{did_number}', [DidNumberController::class, 'update'])->name('did.api.update');
 });
 
@@ -242,7 +246,7 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
 | API PHONE ROOM
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('phoneroom')->group(function () {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('phoneroom')->group(function () {
     Route::post('update/{phone_room}', [PhoneRoomApiController::class, 'update'])->name('phoneroom.api.update');
 });
 
@@ -251,7 +255,7 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
 | API PROVIDER
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('provider')->group(function () {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('provider')->group(function () {
     Route::post('update/{provider}', [ProviderApiController::class, 'update'])->name('provider.api.update');
 });
 
@@ -260,21 +264,10 @@ Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->
 | API CALLS TRANSCRIPT
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'abilities:lead.api:create,lead.api:read'])->prefix('call')->group(function () {
+Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('call')->group(function () {
     Route::post('transcript', [CallController::class, 'transcript'])->name('transcript.api.process');
     Route::post('reprocess', [CallController::class, 'reprocess'])->name('transcript.api.reprocess');
     Route::post('edit', [CallController::class, 'edit'])->name('transcript.api.edit');
     Route::post('ask', [CallController::class, 'ask'])->name('transcript.api.ask');
     Route::post('makeread', [CallController::class, 'makeRead'])->name('transcript.api.makeread');
 });
-
-/*
-|--------------------------------------------------------------------------
-| API TESTS
-|--------------------------------------------------------------------------
-*/
-Route::post('test/calls/process', [App\Http\Controllers\Api\Tests\TestsController::class, 'process']);
-Route::get('test/calls/search', [App\Http\Controllers\Api\Tests\TestsController::class, 'search']);
-Route::get('test/calls/transcript', [App\Http\Controllers\Api\Tests\TestsController::class, 'transcript']);
-Route::post('test/ai', [App\Http\Controllers\Api\Tests\TestsController::class, 'ai']);
-Route::post('test/ai/ask', [App\Http\Controllers\Api\Tests\TestsController::class, 'ask']);

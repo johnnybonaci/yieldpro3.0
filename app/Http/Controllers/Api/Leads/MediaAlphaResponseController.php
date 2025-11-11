@@ -10,6 +10,8 @@ use App\Models\Leads\MediaAlphaResponse;
 
 class MediaAlphaResponseController extends Controller
 {
+    public const DATE_FORMAT = 'Y-m-d H:i:s';
+
     /**
      * Obtener todas las respuestas con filtros para React.
      */
@@ -121,14 +123,14 @@ class MediaAlphaResponseController extends Controller
                     'ping_id' => $response->ping_id,
                     'ping_status' => $response->ping_status,
                     'ping_time' => $response->ping_time,
-                    'ping_sent_at' => $response->ping_sent_at?->format('Y-m-d H:i:s'),
+                    'ping_sent_at' => $response->ping_sent_at?->format(self::DATE_FORMAT),
                     'ping_error' => $response->ping_error,
 
                     // Datos de post
                     'post_status' => $response->post_status,
                     'post_revenue' => $response->post_revenue,
                     'post_time' => $response->post_time,
-                    'post_sent_at' => $response->post_sent_at?->format('Y-m-d H:i:s'),
+                    'post_sent_at' => $response->post_sent_at?->format(self::DATE_FORMAT),
                     'post_error' => $response->post_error,
 
                     // Estadísticas
@@ -142,8 +144,8 @@ class MediaAlphaResponseController extends Controller
 
                     // Estado general
                     'status' => $response->status,
-                    'created_at' => $response->created_at->format('Y-m-d H:i:s'),
-                    'updated_at' => $response->updated_at->format('Y-m-d H:i:s'),
+                    'created_at' => $response->created_at->format(self::DATE_FORMAT),
+                    'updated_at' => $response->updated_at->format(self::DATE_FORMAT),
                 ];
             })
         );
@@ -208,7 +210,7 @@ class MediaAlphaResponseController extends Controller
                     'id' => $response->ping_id,
                     'status' => $response->ping_status,
                     'time' => $response->ping_time,
-                    'sent_at' => $response->ping_sent_at?->format('Y-m-d H:i:s'),
+                    'sent_at' => $response->ping_sent_at?->format(self::DATE_FORMAT),
                     'error' => $response->ping_error,
                     'buyers' => $response->ping_buyers,
                     'raw_response' => $response->ping_raw_response,
@@ -219,7 +221,7 @@ class MediaAlphaResponseController extends Controller
                     'status' => $response->post_status,
                     'revenue' => $response->post_revenue,
                     'time' => $response->post_time,
-                    'sent_at' => $response->post_sent_at?->format('Y-m-d H:i:s'),
+                    'sent_at' => $response->post_sent_at?->format(self::DATE_FORMAT),
                     'error' => $response->post_error,
                     'buyers' => $response->post_buyers,
                     'raw_response' => $response->post_raw_response,
@@ -237,8 +239,8 @@ class MediaAlphaResponseController extends Controller
                 ],
 
                 'status' => $response->status,
-                'created_at' => $response->created_at->format('Y-m-d H:i:s'),
-                'updated_at' => $response->updated_at->format('Y-m-d H:i:s'),
+                'created_at' => $response->created_at->format(self::DATE_FORMAT),
+                'updated_at' => $response->updated_at->format(self::DATE_FORMAT),
             ],
         ]);
     }

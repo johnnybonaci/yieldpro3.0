@@ -115,60 +115,111 @@ class MediaAlphaResponse extends Model
     public function processPostResponse(array $response, bool $isError = false, $requestInfo = []): self
     {
         if ($isError) {
-            $this->update([
-                'post_status' => 'failed',
-                'post_error' => $response['error'] ?? 'Unknown error',
-                'post_sent_at' => now(),
-                'post_raw_response' => $response,
-                'post_request_data' => $requestInfo,
-                'post_time' => $response['response_time_ms'] ?? $response['time'] ?? null,
-                'status' => 'failed',
-            ]);
+            $this->handleErrorResponse($response, $requestInfo);
         } else {
-            $buyers = $response['buyers'] ?? [];
-
-            $revenue = $response['rev'] ?? $response['revenue'] ?? 0;
-            $winningBuyer = null;
-
-            if (!empty($buyers)) {
-                $highestBidBuyer = null;
-                $highestBid = 0;
-
-                foreach ($buyers as $buyer) {
-                    $currentBid = $buyer['bid'] ?? 0;
-                    if ($currentBid > $highestBid) {
-                        $highestBid = $currentBid;
-                        $highestBidBuyer = $buyer;
-                    }
-                }
-
-                if ($highestBidBuyer) {
-                    $winningBuyer = $highestBidBuyer['buyer'] ?? $highestBidBuyer['buyer_id'] ?? $highestBidBuyer['name'] ?? null;
-
-                    if (isset($highestBidBuyer['rev']) && $highestBidBuyer['rev'] > 0) {
-                        $revenue = $highestBidBuyer['rev'];
-                    }
-                }
-            }
-
-            if (!$winningBuyer && is_array($requestInfo) && isset($requestInfo['selected_buyer'])) {
-                $winningBuyer = $requestInfo['selected_buyer']['buyer'] ?? null;
-            }
-
-            $this->update([
-                'post_buyers' => $buyers,
-                'post_status' => $response['status'] ?? 'succeeded',
-                'post_revenue' => $revenue,
-                'post_time' => $response['time'] ?? $response['response_time_ms'] ?? null,
-                'post_sent_at' => now(),
-                'post_raw_response' => $response,
-                'post_request_data' => $requestInfo,
-                'winning_buyer' => $winningBuyer,
-                'status' => $revenue > 0 ? 'completed' : 'completed_no_revenue',
-            ]);
+            $this->handleSuccessResponse($response, $requestInfo);
         }
 
         return $this;
+    }
+
+    /**
+     * Handle error response.
+     * @param mixed $requestInfo
+     */
+    private function handleErrorResponse(array $response, $requestInfo): void
+    {
+        $this->update([
+            'post_status' => 'failed',
+            'post_error' => $response['error'] ?? 'Unknown error',
+            'post_sent_at' => now(),
+            'post_raw_response' => $response,
+            'post_request_data' => $requestInfo,
+            'post_time' => $response['response_time_ms'] ?? $response['time'] ?? null,
+            'status' => 'failed',
+        ]);
+    }
+
+    /**
+     * Handle success response.
+     * @param mixed $requestInfo
+     */
+    private function handleSuccessResponse(array $response, $requestInfo): void
+    {
+        $buyers = $response['buyers'] ?? [];
+        $revenue = $response['rev'] ?? $response['revenue'] ?? 0;
+
+        $winningBuyerData = $this->determineWinningBuyer($buyers, $requestInfo);
+        $winningBuyer = $winningBuyerData['buyer'];
+        $finalRevenue = $winningBuyerData['revenue'] ?? $revenue;
+
+        $this->update([
+            'post_buyers' => $buyers,
+            'post_status' => $response['status'] ?? 'succeeded',
+            'post_revenue' => $finalRevenue,
+            'post_time' => $response['time'] ?? $response['response_time_ms'] ?? null,
+            'post_sent_at' => now(),
+            'post_raw_response' => $response,
+            'post_request_data' => $requestInfo,
+            'winning_buyer' => $winningBuyer,
+            'status' => $finalRevenue > 0 ? 'completed' : 'completed_no_revenue',
+        ]);
+    }
+
+    /**
+     * Determine winning buyer from buyers array or request info.
+     * @param mixed $requestInfo
+     */
+    private function determineWinningBuyer(array $buyers, $requestInfo): array
+    {
+        if (empty($buyers)) {
+            return $this->getWinningBuyerFromRequest($requestInfo);
+        }
+
+        $highestBidBuyer = $this->findHighestBidBuyer($buyers);
+
+        if (!$highestBidBuyer) {
+            return $this->getWinningBuyerFromRequest($requestInfo);
+        }
+
+        return [
+            'buyer' => $highestBidBuyer['buyer'] ?? $highestBidBuyer['buyer_id'] ?? $highestBidBuyer['name'] ?? null,
+            'revenue' => isset($highestBidBuyer['rev']) && $highestBidBuyer['rev'] > 0 ? $highestBidBuyer['rev'] : null,
+        ];
+    }
+
+    /**
+     * Find buyer with highest bid.
+     */
+    private function findHighestBidBuyer(array $buyers): ?array
+    {
+        $highestBidBuyer = null;
+        $highestBid = 0;
+
+        foreach ($buyers as $buyer) {
+            $currentBid = $buyer['bid'] ?? 0;
+            if ($currentBid > $highestBid) {
+                $highestBid = $currentBid;
+                $highestBidBuyer = $buyer;
+            }
+        }
+
+        return $highestBidBuyer;
+    }
+
+    /**
+     * Get winning buyer from request info fallback.
+     * @param mixed $requestInfo
+     */
+    private function getWinningBuyerFromRequest($requestInfo): array
+    {
+        $buyer = null;
+
+        if (is_array($requestInfo) && isset($requestInfo['selected_buyer'])) {
+            $buyer = $requestInfo['selected_buyer']['buyer'] ?? null;
+        }
+
+        return ['buyer' => $buyer, 'revenue' => null];
     }
 
     public function scopeByStatus($query, string $status)

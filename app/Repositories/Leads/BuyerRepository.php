@@ -12,10 +12,6 @@ use App\Interfaces\Leads\ImportRepositoryInterface;
 
 class BuyerRepository implements ImportRepositoryInterface
 {
-    public function __construct()
-    {
-    }
-
     /**
      * Summary of create.
      */

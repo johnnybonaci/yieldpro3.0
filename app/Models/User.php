@@ -10,6 +10,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Builder;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -33,7 +34,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'pub_id',
-        'type',
+        'type'
     ];
 
     /**
@@ -62,16 +63,35 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @var array<int, string>
      */
-    protected $appends = [
-        'profile_photo_url',
-    ];
+    protected $appends = [];
 
     /**
-     * Summary of offers.
+     * Get the user's profile photo URL.
      */
+    protected function profilePhotoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->profile_photo_path
+                ? asset('storage/' . $this->profile_photo_path)
+                : $this->defaultProfilePhotoUrl()
+        );
+    }
+
+    /**
+     * Get the default profile photo URL.
+     */
+    protected function defaultProfilePhotoUrl(): string
+    {
+        $name = trim(collect(explode(' ', $this->name))->map(function ($segment) {
+            return mb_substr($segment, 0, 1);
+        })->join(' '));
+
+        return 'https://ui-avatars.com/api/?name=' . urlencode($name) . '&color=7F9CF5&background=EBF4FF';
+    }
+
     public function pub_id(): BelongsTo
     {
-        return $this->BelongsTo(Pub::class, 'pub_id', 'id');
+        return $this->belongsTo(Pub::class, 'pub_id', 'id');
     }
 
     public function scopeActive(Builder $query): Builder

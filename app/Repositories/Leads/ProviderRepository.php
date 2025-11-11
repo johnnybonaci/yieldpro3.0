@@ -10,10 +10,6 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class ProviderRepository
 {
-    public function __construct()
-    {
-    }
-
     /**
      * Summary of create.
      */

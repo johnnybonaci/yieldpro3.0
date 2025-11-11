@@ -12,10 +12,6 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class OfferRepository implements ImportRepositoryInterface
 {
-    public function __construct()
-    {
-    }
-
     /**
      * Summary of create.
      */
