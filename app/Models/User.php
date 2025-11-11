@@ -34,7 +34,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'pub_id',
-        'type'
+        'type',
     ];
 
     /**
@@ -71,7 +71,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected function profilePhotoUrl(): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->profile_photo_path
+            get: fn () => $this->profile_photo_path
                 ? asset('storage/' . $this->profile_photo_path)
                 : $this->defaultProfilePhotoUrl()
         );
