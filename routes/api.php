@@ -28,7 +28,7 @@ use App\Http\Controllers\Api\Settings\ProviderController as ProviderApiControlle
 use App\Http\Controllers\Api\Settings\PhoneRoomController as PhoneRoomApiController;
 
 // Middleware constants
-const AUTH_SANCTUM = 'auth:sanctum';
+const AUTH_SANCTUM_API = 'auth:sanctum';
 const LEAD_API_ABILITIES = 'abilities:lead.api:create,lead.api:read';
 const CONFIG_PARAM = '/{config}';
 
@@ -38,13 +38,13 @@ const CONFIG_PARAM = '/{config}';
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(AUTH_SANCTUM)->prefix('auth')->group(function () {
+Route::middleware(AUTH_SANCTUM_API)->prefix('auth')->group(function () {
     Route::get('user', [UserApiController::class, 'authenticated'])->name('auth.user');
     Route::get('roles', [RoleController::class, 'index'])->name('auth.roles.list');
-    Route::middleware(AUTH_SANCTUM)->get('/auth/user/{userId}', [UserApiController::class, 'getUserById']);
+    Route::middleware(AUTH_SANCTUM_API)->get('/auth/user/{userId}', [UserApiController::class, 'getUserById']);
 });
 
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->get('/user', function (Request $request) {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->get('/user', function (Request $request) {
     return $request->user();
 });
 /*
@@ -60,7 +60,7 @@ Route::post('token', [AccessTokenController::class, 'token'])->name('auth.token'
 | Data Routes - READ operations (from web.php)
 |--------------------------------------------------------------------------
 */
-Route::middleware(AUTH_SANCTUM)->prefix('data')->group(function () {
+Route::middleware(AUTH_SANCTUM_API)->prefix('data')->group(function () {
     // Metadata
     Route::get('/', [CallController::class, 'metadata'])->name('lead.api.metadata');
 
@@ -131,7 +131,7 @@ Route::middleware(AUTH_SANCTUM)->prefix('data')->group(function () {
 | API Leads - WRITE operations
 |--------------------------------------------------------------------------
 */
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('leads')->group(function () {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->prefix('leads')->group(function () {
     Route::post('data', [LeadController::class, 'store'])->name('lead.api.store');
     Route::post('update', [LeadController::class, 'update'])->name('lead.api.update');
 });
@@ -141,7 +141,7 @@ Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('leads')->group(fu
 | Media Alpha API
 |--------------------------------------------------------------------------
 */
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('media-alpha')->group(function () {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->prefix('media-alpha')->group(function () {
     Route::prefix('configs')->group(function () {
         Route::get('/', [MediaAlphaConfigController::class, 'index']);
         Route::post('/', [MediaAlphaConfigController::class, 'store']);
@@ -174,7 +174,7 @@ Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('media-alpha')->gr
 | API Calls
 |--------------------------------------------------------------------------
 */
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('calls')->group(function () {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->prefix('calls')->group(function () {
     Route::post('phoneroom', [PhoneRoomController::class, 'store'])->name('phoneroom.api.store');
 });
 /*
@@ -182,7 +182,7 @@ Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('calls')->group(fu
 | API Lead Page View
 |--------------------------------------------------------------------------
 */
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('page')->group(function () {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->prefix('page')->group(function () {
     Route::post('views', [LeadPageViewController::class, 'store'])->name('pageviews.api.store');
 });
 /*
@@ -190,7 +190,7 @@ Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('page')->group(fun
 | API PUBS
 |--------------------------------------------------------------------------
 */
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('pubs')->group(function () {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->prefix('pubs')->group(function () {
     Route::post('update/{pubid}', [PubIdController::class, 'update'])->name('pubid.api.update');
     Route::post('create', [PubIdController::class, 'create'])->name('pubid.api.create');
 });
@@ -200,7 +200,7 @@ Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('pubs')->group(fun
 | API PUBS By Offer
 |--------------------------------------------------------------------------
 */
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('pubsoffer')->group(function () {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->prefix('pubsoffer')->group(function () {
     Route::post('update/{pub?}', [PubsController::class, 'update'])->name('pubs.api.update');
 });
 
@@ -209,7 +209,7 @@ Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('pubsoffer')->grou
 | API OFFERS
 |--------------------------------------------------------------------------
 */
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('offers')->group(function () {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->prefix('offers')->group(function () {
     Route::post('update/{offer}', [OfferController::class, 'update'])->name('offer.api.update');
 });
 
@@ -218,7 +218,7 @@ Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('offers')->group(f
 | API TRAFFIC SOURCE
 |--------------------------------------------------------------------------
 */
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('trafficsource')->group(function () {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->prefix('trafficsource')->group(function () {
     Route::post('update/{traffic_source}', [TrafficSourceController::class, 'update'])->name('trafficsource.api.update');
 });
 
@@ -227,7 +227,7 @@ Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('trafficsource')->
 | API BUYER
 |--------------------------------------------------------------------------
 */
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('buyer')->group(function () {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->prefix('buyer')->group(function () {
     Route::post('update/{buyer}', [BuyerController::class, 'update'])->name('buyer.api.update');
     Route::post('selection/', [BuyerController::class, 'selection'])->name('buyer.api.selection');
 });
@@ -237,7 +237,7 @@ Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('buyer')->group(fu
 | API DID NUMBER
 |--------------------------------------------------------------------------
 */
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('did')->group(function () {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->prefix('did')->group(function () {
     Route::post('update/{did_number}', [DidNumberController::class, 'update'])->name('did.api.update');
 });
 
@@ -246,7 +246,7 @@ Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('did')->group(func
 | API PHONE ROOM
 |--------------------------------------------------------------------------
 */
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('phoneroom')->group(function () {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->prefix('phoneroom')->group(function () {
     Route::post('update/{phone_room}', [PhoneRoomApiController::class, 'update'])->name('phoneroom.api.update');
 });
 
@@ -255,7 +255,7 @@ Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('phoneroom')->grou
 | API PROVIDER
 |--------------------------------------------------------------------------
 */
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('provider')->group(function () {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->prefix('provider')->group(function () {
     Route::post('update/{provider}', [ProviderApiController::class, 'update'])->name('provider.api.update');
 });
 
@@ -264,7 +264,7 @@ Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('provider')->group
 | API CALLS TRANSCRIPT
 |--------------------------------------------------------------------------
 */
-Route::middleware([AUTH_SANCTUM, LEAD_API_ABILITIES])->prefix('call')->group(function () {
+Route::middleware([AUTH_SANCTUM_API, LEAD_API_ABILITIES])->prefix('call')->group(function () {
     Route::post('transcript', [CallController::class, 'transcript'])->name('transcript.api.process');
     Route::post('reprocess', [CallController::class, 'reprocess'])->name('transcript.api.reprocess');
     Route::post('edit', [CallController::class, 'edit'])->name('transcript.api.edit');
