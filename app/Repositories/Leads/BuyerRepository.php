@@ -7,10 +7,12 @@ use Carbon\Carbon;
 use App\Models\Leads\Buyer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use App\Contracts\SettingsRepositoryInterface;
 use App\Interfaces\Leads\ImportRepositoryInterface;
 
-class BuyerRepository implements ImportRepositoryInterface
+class BuyerRepository implements ImportRepositoryInterface, SettingsRepositoryInterface
 {
     /**
      * Summary of create.
@@ -45,6 +47,30 @@ class BuyerRepository implements ImportRepositoryInterface
     public function getBuyers(): Builder
     {
         return Buyer::query()->where('created_at', '>=', Carbon::now()->subMonths(10));
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function getQuery(): Builder
+    {
+        return $this->getBuyers();
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function save(Request $request, Model $model): array
+    {
+        return $this->saveBuyers($request, $model);
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function getDefaultSortField(): string
+    {
+        return 'id';
     }
 
     public function saveBuyers(Request $request, Buyer $buyer): array

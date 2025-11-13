@@ -37,7 +37,7 @@ use App\Http\Controllers\Api\Settings\PhoneRoomController as PhoneRoomApiControl
 Route::middleware(ApiConstants::AUTH_SANCTUM)->prefix('auth')->group(function () {
     Route::get('user', [UserApiController::class, 'authenticated'])->name('auth.user');
     Route::get('roles', [RoleController::class, 'index'])->name('auth.roles.list');
-    Route::middleware(ApiConstants::AUTH_SANCTUM)->get('/auth/user/{userId}', [UserApiController::class, 'getUserById']);
+    Route::get('/auth/user/{userId}', [UserApiController::class, 'getUserById']);
 });
 
 Route::middleware([ApiConstants::AUTH_SANCTUM, ApiConstants::LEAD_API_ABILITIES])->get('/user', function (Request $request) {
@@ -94,13 +94,6 @@ Route::middleware(ApiConstants::AUTH_SANCTUM)->prefix('data')->group(function ()
     Route::get('report-cpa', [CallController::class, 'reportCpa'])->name('lead.cpa.api.index');
     Route::get('report-rpc', [CallController::class, 'reportRpc'])->name('lead.rpc.api.index');
     Route::get('report-qa', [CallController::class, 'reportQa'])->name('lead.qa.api.index');
-
-    // Call operations (moved from separate routes)
-    Route::post('transcript', [CallController::class, 'transcript'])->name('call.api.process');
-    Route::post('reprocess', [CallController::class, 'reprocess'])->name('call.api.reprocess');
-    Route::post('edit', [CallController::class, 'edit'])->name('call.api.edit');
-    Route::post('ask', [CallController::class, 'ask'])->name('call.api.ask');
-    Route::post('makeread', [CallController::class, 'makeRead'])->name('call.api.makeread');
 
     Route::get('roles', [RoleController::class, 'indexApi'])->name('roles.list');
     Route::get('roles/{role}', [RoleController::class, 'show'])->name('roles.show');

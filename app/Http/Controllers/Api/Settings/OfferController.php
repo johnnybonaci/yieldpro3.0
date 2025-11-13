@@ -2,36 +2,16 @@
 
 namespace App\Http\Controllers\Api\Settings;
 
-use App\Models\Leads\Offer;
-use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 use App\Repositories\Leads\OfferRepository;
-use Illuminate\Contracts\Pagination\Paginator;
 
-class OfferController extends Controller
+/**
+ * Offer Settings Controller
+ * Extends BaseSettingsController to eliminate code duplication.
+ */
+class OfferController extends BaseSettingsController
 {
-    public function __construct(
-        protected OfferRepository $offer_repository,
-    ) {
-    }
-
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request): Paginator
+    public function __construct(OfferRepository $repository)
     {
-        $page = $request->get('page', 1);
-        $size = $request->get('size', 20);
-        $rows = $this->offer_repository->getOffers();
-
-        return $rows->filterFields()->sortsFields('id')->paginate($size, ['*'], 'page', $page);
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Offer $offer)
-    {
-        return json_encode($this->offer_repository->saveOffers($request, $offer));
+        parent::__construct($repository);
     }
 }

@@ -6,11 +6,13 @@ use App\Models\Leads\Offer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use App\Contracts\SettingsRepositoryInterface;
 use App\Interfaces\Leads\ImportRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
-class OfferRepository implements ImportRepositoryInterface
+class OfferRepository implements ImportRepositoryInterface, SettingsRepositoryInterface
 {
     /**
      * Summary of create.
@@ -69,6 +71,30 @@ class OfferRepository implements ImportRepositoryInterface
     public function getOffers(): Builder
     {
         return Offer::query();
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function getQuery(): Builder
+    {
+        return $this->getOffers();
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function save(Request $request, Model $model): array
+    {
+        return $this->saveOffers($request, $model);
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function getDefaultSortField(): string
+    {
+        return 'id';
     }
 
     public function show(): array

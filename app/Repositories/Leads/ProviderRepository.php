@@ -5,10 +5,12 @@ namespace App\Repositories\Leads;
 use Illuminate\Http\Request;
 use App\Models\Leads\Provider;
 use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use App\Contracts\SettingsRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
-class ProviderRepository
+class ProviderRepository implements SettingsRepositoryInterface
 {
     /**
      * Summary of create.
@@ -36,6 +38,30 @@ class ProviderRepository
     public function getProvider(): Builder
     {
         return Provider::query();
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function getQuery(): Builder
+    {
+        return $this->getProvider();
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function save(Request $request, Model $model): array
+    {
+        return $this->saveProvider($request, $model);
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function getDefaultSortField(): string
+    {
+        return 'id';
     }
 
     public function saveProvider(Request $request, Provider $provider): array

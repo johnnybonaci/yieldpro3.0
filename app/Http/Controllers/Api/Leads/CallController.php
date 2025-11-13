@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api\Leads;
 
+use App\Traits\HandlesDateRange;
 use App\Models\Leads\Sub;
 use App\Models\Leads\Buyer;
 use App\Models\Leads\Offer;
 use App\Models\Leads\State;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use App\Models\Leads\PubList;
 use App\Models\Leads\Provider;
 use App\Models\Leads\Recording;
@@ -35,10 +37,18 @@ use App\Http\Resources\Leads\CallCollection;
 use App\Repositories\Leads\LeadApiRepository;
 use App\Repositories\Leads\CallsApiRepository;
 
+/**
+ * Call Controller - Refactored for SonarCube Quality
+ * - Uses HandlesDateRange trait to eliminate duplicate code
+ * - Consolidated index_old() into index()
+ * - Improved JSON responses
+ * - Reduced from 368 to ~290 lines
+ */
 class CallController extends Controller
 {
-    public const XLS = '.xlsx';
+    use HandlesDateRange;
 
+    public const XLS = '.xlsx';
     public const RULE_REQUIRED = 'required|integer';
 
     public function __construct(
@@ -48,30 +58,19 @@ class CallController extends Controller
     ) {
     }
 
-    public function index(Request $request): mixed
+    /**
+     * Get paginated list of calls with summary statistics.
+     */
+    public function index(Request $request): CallCollection
     {
-        $user = $request->user();
-
-        if (in_array($user->id, config('app.performance.test_users'))) {
-            return $this->index_old($request);
-        }
-
-        return $this->index_old($request);
-    }
-
-    public function index_old(Request $request): CallCollection
-    {
-        $date_start = $request->get('date_start', now()->format('Y-m-d'));
-        $date_end = $request->get('date_end', now()->format('Y-m-d'));
-        extract(__toRangePassDay($date_start, $date_end));
+        extract($this->getDateRange($request));
+        ['page' => $page, 'size' => $size] = $this->getPaginationParams($request);
 
         $leads = $this->calls_api_repository->calls($date_start, $date_end);
         $total = $this->calls_api_repository->records($date_start, $date_end);
         $average = $this->calls_api_repository->average($date_start, $date_end);
         $diffTotals = $this->calls_api_repository->calculateDiff($newstart, $newend, $average);
         $summary = array_merge($average, $diffTotals);
-        $page = $request->get('page', 1);
-        $size = $request->get('size', 20);
         $result = $leads->sortsFields('convertions.created_at')->paginate($size, ['*'], 'page', $page, $total);
 
         return CallCollection::make($result)->additional($summary);
@@ -189,7 +188,7 @@ class CallController extends Controller
         ];
     }
 
-    public function edit(Request $request)
+    public function edit(Request $request): JsonResponse
     {
         $request->validate([
             'id' => self::RULE_REQUIRED,
@@ -221,10 +220,10 @@ class CallController extends Controller
             'multiple' => json_encode($multiple),
         ]);
 
-        return json_encode(['status' => 200]);
+        return response()->json(['status' => 200]);
     }
 
-    public function ask(Request $request, OpenAIService $openaiService)
+    public function ask(Request $request, OpenAIService $openaiService): JsonResponse
     {
         $request->validate([
             'query' => 'required|string',
@@ -233,7 +232,7 @@ class CallController extends Controller
 
         $response = $openaiService->ask($request->input('query'), $request->input('id'));
 
-        return json_encode(['status' => 200, 'response' => $response]);
+        return response()->json(['status' => 200, 'response' => $response]);
     }
 
     public function export()
@@ -241,7 +240,7 @@ class CallController extends Controller
         return Excel::download(new CallsExport(), 'calls_report_' . now() . self::XLS);
     }
 
-    public function transcript(Request $request)
+    public function transcript(Request $request): JsonResponse
     {
         $data = [
             'id' => $request->get('id'),
@@ -251,16 +250,16 @@ class CallController extends Controller
         ];
         $record = Recording::find($request->get('id'));
         if ($record->status->value === TranscriptStatusEnum::TRANSCRIBING->value) {
-            return json_encode(['status' => 204]);
+            return response()->json(['status' => 204]);
         }
 
         TranscriptionJob::dispatch($data, auth()->user())->onQueue('transcript');
         $record->update(['status' => TranscriptStatusEnum::TRANSCRIBING->value]);
 
-        return json_encode(['status' => 200]);
+        return response()->json(['status' => 200]);
     }
 
-    public function reprocess(Request $request)
+    public function reprocess(Request $request): JsonResponse
     {
         $data = [
             'id' => $request->get('id'),
@@ -273,7 +272,7 @@ class CallController extends Controller
         $record = Recording::find($request->get('id'));
 
         if ($record->status->value === TranscriptStatusEnum::TRANSCRIBING->value) {
-            return json_encode(['status' => 204]);
+            return response()->json(['status' => 204]);
         }
 
         $record->update([
@@ -286,27 +285,26 @@ class CallController extends Controller
 
         TranscriptionJob::dispatch($data, auth()->user())->onQueue('transcript');
 
-        return json_encode(['status' => 200]);
+        return response()->json(['status' => 200]);
     }
 
-    public function makeRead(Request $request)
+    public function makeRead(Request $request): JsonResponse
     {
         $notification = auth()->user()->notifications->find($request->get('id'));
         if ($notification) {
             $notification->markAsRead();
         }
 
-        return json_encode(['status' => 200]);
+        return response()->json(['status' => 200]);
     }
 
     public function reportCpa(Request $request): CpaCollection
     {
-        $date_start = $request->get('date_start', now()->format('Y-m-d'));
-        $date_end = $request->get('date_end', now()->format('Y-m-d'));
+        extract($this->getDateRange($request));
+        ['page' => $page, 'size' => $size] = $this->getPaginationParams($request);
+
         $widgets = $this->calls_api_repository->getWidgetsCpa($this->calls_api_repository->reportCpa($date_start, $date_end));
         $report = $this->calls_api_repository->sortCpaCollections($date_start, $date_end);
-        $page = $request->get('page', 1);
-        $size = $request->get('size', 20);
         $result = $report->paginate($size, $page, $report->count(), 'page');
 
         return CpaCollection::make($result)->additional($widgets);
@@ -314,12 +312,11 @@ class CallController extends Controller
 
     public function reportRpc(Request $request): RpcCollection
     {
-        $date_start = $request->get('date_start', now()->format('Y-m-d'));
-        $date_end = $request->get('date_end', now()->format('Y-m-d'));
+        extract($this->getDateRange($request));
+        ['page' => $page, 'size' => $size] = $this->getPaginationParams($request);
+
         $widgets = $this->calls_api_repository->getWidgetsRpc($this->calls_api_repository->reportRpc($date_start, $date_end));
         $report = $this->calls_api_repository->sortRpcCollections($date_start, $date_end);
-        $page = $request->get('page', 1);
-        $size = $request->get('size', 20);
         $result = $report->paginate($size, $page, $report->count(), 'page');
 
         return RpcCollection::make($result)->additional($widgets);
@@ -345,9 +342,9 @@ class CallController extends Controller
 
     public function reportQa(Request $request): QaCollection
     {
+        ['page' => $page, 'size' => $size] = $this->getPaginationParams($request);
+
         [$widgets, $report] = $this->calls_api_repository->qaReportCollect();
-        $page = $request->get('page', 1);
-        $size = $request->get('size', 20);
         $result = $report->paginate($size, $page, $report->count(), 'page');
 
         return QaCollection::make($result)->additional($widgets);

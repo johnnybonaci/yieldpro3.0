@@ -5,10 +5,12 @@ namespace App\Repositories\Leads;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use App\Models\Leads\TrafficSource;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use App\Contracts\SettingsRepositoryInterface;
 use App\Interfaces\Leads\ImportRepositoryInterface;
 
-class TrafficSourceRepository implements ImportRepositoryInterface
+class TrafficSourceRepository implements ImportRepositoryInterface, SettingsRepositoryInterface
 {
     /**
      * Summary of create.
@@ -51,6 +53,30 @@ class TrafficSourceRepository implements ImportRepositoryInterface
     public function getTrafficSource(): Builder
     {
         return TrafficSource::query();
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function getQuery(): Builder
+    {
+        return $this->getTrafficSource();
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function save(Request $request, Model $model): array
+    {
+        return $this->saveTrafficSource($request, $model);
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function getDefaultSortField(): string
+    {
+        return 'updated_at';
     }
 
     public function saveTrafficSource(Request $request, TrafficSource $traffic_source): array

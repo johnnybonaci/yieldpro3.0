@@ -6,10 +6,12 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\Leads\DidNumber;
 use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use App\Contracts\SettingsRepositoryInterface;
 use App\Interfaces\Leads\ImportRepositoryInterface;
 
-class DidNumberRepository implements ImportRepositoryInterface
+class DidNumberRepository implements ImportRepositoryInterface, SettingsRepositoryInterface
 {
     /**
      * Summary of create.
@@ -66,6 +68,30 @@ class DidNumberRepository implements ImportRepositoryInterface
     public function getDidNumbers(): Builder
     {
         return DidNumber::query();
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function getQuery(): Builder
+    {
+        return $this->getDidNumbers();
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function save(Request $request, Model $model): array
+    {
+        return $this->saveDidNumbers($request, $model);
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function getDefaultSortField(): string
+    {
+        return 'id';
     }
 
     public function saveDidNumbers(Request $request, DidNumber $did_number): array

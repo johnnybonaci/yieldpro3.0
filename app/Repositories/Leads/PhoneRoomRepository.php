@@ -15,9 +15,10 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Database\Eloquent\Model;
 use App\Repositories\EloquentRepository;
 use Illuminate\Database\Eloquent\Builder;
+use App\Contracts\SettingsRepositoryInterface;
 use App\Support\Collection as PersonalCollection;
 
-class PhoneRoomRepository extends EloquentRepository
+class PhoneRoomRepository extends EloquentRepository implements SettingsRepositoryInterface
 {
     public const VENDOR_YP = 'pub_lists.name as vendors_yp';
 
@@ -345,6 +346,30 @@ class PhoneRoomRepository extends EloquentRepository
     public function getPhoneRoom(): Builder
     {
         return PhoneRoom::query();
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function getQuery(): Builder
+    {
+        return $this->getPhoneRoom();
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function save(Request $request, Model $model): array
+    {
+        return $this->savePhoneRoom($request, $model);
+    }
+
+    /**
+     * Implementation of SettingsRepositoryInterface
+     */
+    public function getDefaultSortField(): string
+    {
+        return 'id';
     }
 
     public function savePhoneRoom(Request $request, PhoneRoom $phone_room): array
