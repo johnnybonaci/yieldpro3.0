@@ -3,50 +3,44 @@
 namespace App\Services\Leads;
 
 use Illuminate\Support\Str;
-use App\Repositories\LogRepository;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Http\Client\RequestException;
-use App\Interfaces\Leads\PostingServiceInterface;
 
-class GoodCallService implements PostingServiceInterface
+class GoodCallService extends AbstractCallService
 {
     public const BASE_URL = 'https://dialer.vp.genxcontactcenter.com/vicidial';
 
     public const PHONE_ROOM = 1;
 
-    public function __construct(
-        private LogRepository $log_repository,
-    ) {
+    protected function getEndpoint(): string
+    {
+        return 'non_agent_api.php';
     }
 
-    /**
-     * Posting Lead to PhoneRoom GoogCall.
-     */
-    public function submit(array $data): bool
+    protected function getBaseUrl(): string
     {
-        $log['phone'] = $data['phone_number'];
+        return self::BASE_URL;
+    }
 
-        try {
-            $response = Http::baseUrl(self::BASE_URL)->get('non_agent_api.php', $data)->throw();
-            $message = $response->body();
-            $log['status'] = 'error';
-            $log['lead_id'] = '';
-            $log['request'] = self::BASE_URL . '/non_agent_api.php?' . http_build_query($data, '&');
+    protected function getPhoneRoomId(): int
+    {
+        return self::PHONE_ROOM;
+    }
 
-            if (Str::contains($message, 'SUCCESS:')) {
-                $explodId = Str::of(trim($message, "\n"))->explode($data['phone_number'] . '|1001')[1];
-                $log['status'] = 'success';
-                $log['lead_id'] = Str::betweenFirst($explodId, '|', '|');
-                $message = json_encode([]);
-            }
-            $this->log_repository->logginPhoneRoom($message, $log, self::PHONE_ROOM);
-            $response = true;
-        } catch (RequestException $e) {
-            $log['status'] = 'error';
-            $this->log_repository->logginPhoneRoom($e->response->body(), $log, self::PHONE_ROOM);
-            $response = false;
+    protected function parseSuccessResponse(string $responseBody, array $data): array
+    {
+        if (Str::contains($responseBody, 'SUCCESS:')) {
+            $explodId = Str::of(trim($responseBody, "\n"))
+                ->explode($data['phone_number'] . '|1001')[1];
+
+            return [
+                'status' => 'success',
+                'lead_id' => Str::betweenFirst($explodId, '|', '|'),
+                'message' => json_encode([]),
+            ];
         }
 
-        return $response;
+        return [
+            'status' => 'error',
+            'message' => $responseBody,
+        ];
     }
 }

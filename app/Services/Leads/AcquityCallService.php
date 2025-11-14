@@ -2,53 +2,42 @@
 
 namespace App\Services\Leads;
 
-use App\Repositories\LogRepository;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Http\Client\RequestException;
-use App\Interfaces\Leads\PostingServiceInterface;
-
-class AcquityCallService implements PostingServiceInterface
+class AcquityCallService extends AbstractCallService
 {
     public const BASE_URL = 'https://api.convoso.com/v1/leads';
 
     public const PHONE_ROOM = 3;
 
-    public function __construct(
-        private LogRepository $log_repository,
-    ) {
+    protected function getEndpoint(): string
+    {
+        return 'insert';
     }
 
-    /**
-     * Posting Lead to PhoneRoom TruAlliant.
-     */
-    public function submit(array $data): bool
+    protected function getBaseUrl(): string
     {
-        $log = [
-            'phone' => $data['phone_number'],
-            'request' => self::BASE_URL . '/insert?' . http_build_query($data, '&'),
-            'status' => 'error',
-            'lead_id' => '',
-        ];
+        return self::BASE_URL;
+    }
 
-        try {
-            $response = Http::baseUrl(self::BASE_URL)->get('insert', $data)->throw();
+    protected function getPhoneRoomId(): int
+    {
+        return self::PHONE_ROOM;
+    }
 
-            $message = json_decode($response->body(), true);
-            if (isset($message['success']) && $message['success'] === true) {
-                $log['status'] = 'success';
-                $log['lead_id'] = $message['data']['lead_id'];
-                $message = json_encode([]);
-            } else {
-                $message = json_encode($response->body());
-            }
+    protected function parseSuccessResponse(string $responseBody, array $data): array
+    {
+        $message = json_decode($responseBody, true);
 
-            $this->log_repository->logginPhoneRoom($message, $log, self::PHONE_ROOM);
-
-            return true;
-        } catch (RequestException $e) {
-            $this->log_repository->logginPhoneRoom($e->response->body(), $log, self::PHONE_ROOM);
-
-            return false;
+        if (isset($message['success']) && $message['success'] === true) {
+            return [
+                'status' => 'success',
+                'lead_id' => $message['data']['lead_id'],
+                'message' => json_encode([]),
+            ];
         }
+
+        return [
+            'status' => 'error',
+            'message' => json_encode($responseBody),
+        ];
     }
 }

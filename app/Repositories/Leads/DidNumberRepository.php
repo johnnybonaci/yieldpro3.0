@@ -9,10 +9,9 @@ use App\Models\Leads\DidNumber;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use App\Contracts\SettingsRepositoryInterface;
 use App\Interfaces\Leads\ImportRepositoryInterface;
 
-class DidNumberRepository implements ImportRepositoryInterface, SettingsRepositoryInterface
+class DidNumberRepository extends AbstractSettingsRepository implements ImportRepositoryInterface
 {
     use SavesWithResponse;
     /**
@@ -69,34 +68,15 @@ class DidNumberRepository implements ImportRepositoryInterface, SettingsReposito
 
     public function getDidNumbers(): Builder
     {
+        return $this->getSettingsQuery();
+    }
+
+    protected function getSettingsQuery(): Builder
+    {
         return DidNumber::query();
     }
 
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function getQuery(): Builder
-    {
-        return $this->getDidNumbers();
-    }
-
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function save(Request $request, Model $model): array
-    {
-        return $this->saveDidNumbers($request, $model);
-    }
-
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function getDefaultSortField(): string
-    {
-        return 'id';
-    }
-
-    public function saveDidNumbers(Request $request, DidNumber $did_number): array
+    protected function saveSettings(Request $request, Model $did_number): array
     {
         return $this->saveWithResponse($did_number, 'DID Number', function ($model) use ($request) {
             $pub_id = $request->get('pub_id');

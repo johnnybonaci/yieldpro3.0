@@ -8,10 +8,9 @@ use App\Models\Leads\Provider;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use App\Contracts\SettingsRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
-class ProviderRepository implements SettingsRepositoryInterface
+class ProviderRepository extends AbstractSettingsRepository
 {
     use SavesWithResponse;
     /**
@@ -39,34 +38,15 @@ class ProviderRepository implements SettingsRepositoryInterface
 
     public function getProvider(): Builder
     {
+        return $this->getSettingsQuery();
+    }
+
+    protected function getSettingsQuery(): Builder
+    {
         return Provider::query();
     }
 
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function getQuery(): Builder
-    {
-        return $this->getProvider();
-    }
-
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function save(Request $request, Model $model): array
-    {
-        return $this->saveProvider($request, $model);
-    }
-
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function getDefaultSortField(): string
-    {
-        return 'id';
-    }
-
-    public function saveProvider(Request $request, Provider $provider): array
+    protected function saveSettings(Request $request, Model $provider): array
     {
         return $this->saveWithResponse($provider, 'Provider', function ($model) use ($request) {
             $model->name = $request->get('name') ?? '';

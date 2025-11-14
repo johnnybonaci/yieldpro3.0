@@ -8,10 +8,9 @@ use Illuminate\Support\Collection;
 use App\Models\Leads\TrafficSource;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use App\Contracts\SettingsRepositoryInterface;
 use App\Interfaces\Leads\ImportRepositoryInterface;
 
-class TrafficSourceRepository implements ImportRepositoryInterface, SettingsRepositoryInterface
+class TrafficSourceRepository extends AbstractSettingsRepository implements ImportRepositoryInterface
 {
     use SavesWithResponse;
     /**
@@ -54,34 +53,20 @@ class TrafficSourceRepository implements ImportRepositoryInterface, SettingsRepo
 
     public function getTrafficSource(): Builder
     {
+        return $this->getSettingsQuery();
+    }
+
+    protected function getSettingsQuery(): Builder
+    {
         return TrafficSource::query();
     }
 
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function getQuery(): Builder
-    {
-        return $this->getTrafficSource();
-    }
-
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function save(Request $request, Model $model): array
-    {
-        return $this->saveTrafficSource($request, $model);
-    }
-
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function getDefaultSortField(): string
+    protected function getDefaultSort(): string
     {
         return 'updated_at';
     }
 
-    public function saveTrafficSource(Request $request, TrafficSource $traffic_source): array
+    protected function saveSettings(Request $request, Model $traffic_source): array
     {
         return $this->saveWithResponse($traffic_source, 'Traffic Source', function ($model) use ($request) {
             $model->name = $request->get('name');

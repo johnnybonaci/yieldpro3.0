@@ -9,11 +9,10 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use App\Contracts\SettingsRepositoryInterface;
 use App\Interfaces\Leads\ImportRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
-class OfferRepository implements ImportRepositoryInterface, SettingsRepositoryInterface
+class OfferRepository extends AbstractSettingsRepository implements ImportRepositoryInterface
 {
     use SavesWithResponse;
     /**
@@ -72,31 +71,12 @@ class OfferRepository implements ImportRepositoryInterface, SettingsRepositoryIn
 
     public function getOffers(): Builder
     {
+        return $this->getSettingsQuery();
+    }
+
+    protected function getSettingsQuery(): Builder
+    {
         return Offer::query();
-    }
-
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function getQuery(): Builder
-    {
-        return $this->getOffers();
-    }
-
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function save(Request $request, Model $model): array
-    {
-        return $this->saveOffers($request, $model);
-    }
-
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function getDefaultSortField(): string
-    {
-        return 'id';
     }
 
     public function show(): array
@@ -104,7 +84,7 @@ class OfferRepository implements ImportRepositoryInterface, SettingsRepositoryIn
         return Offer::pluck('type', 'id')->toArray();
     }
 
-    public function saveOffers(Request $request, Offer $offer): array
+    protected function saveSettings(Request $request, Model $offer): array
     {
         return $this->saveWithResponse($offer, 'offer', function ($model) use ($request) {
             $model->name = $request->get('name');

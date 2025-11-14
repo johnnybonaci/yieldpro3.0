@@ -10,10 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use App\Contracts\SettingsRepositoryInterface;
 use App\Interfaces\Leads\ImportRepositoryInterface;
 
-class BuyerRepository implements ImportRepositoryInterface, SettingsRepositoryInterface
+class BuyerRepository extends AbstractSettingsRepository implements ImportRepositoryInterface
 {
     use SavesWithResponse;
     /**
@@ -48,34 +47,15 @@ class BuyerRepository implements ImportRepositoryInterface, SettingsRepositoryIn
 
     public function getBuyers(): Builder
     {
+        return $this->getSettingsQuery();
+    }
+
+    protected function getSettingsQuery(): Builder
+    {
         return Buyer::query()->where('created_at', '>=', Carbon::now()->subMonths(10));
     }
 
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function getQuery(): Builder
-    {
-        return $this->getBuyers();
-    }
-
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function save(Request $request, Model $model): array
-    {
-        return $this->saveBuyers($request, $model);
-    }
-
-    /**
-     * Implementation of SettingsRepositoryInterface.
-     */
-    public function getDefaultSortField(): string
-    {
-        return 'id';
-    }
-
-    public function saveBuyers(Request $request, Buyer $buyer): array
+    protected function saveSettings(Request $request, Model $buyer): array
     {
         return $this->saveWithResponse($buyer, 'Buyer', function ($model) use ($request) {
             $model->name = $request->get('name');
