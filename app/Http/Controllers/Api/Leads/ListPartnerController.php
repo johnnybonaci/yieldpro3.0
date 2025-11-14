@@ -3,23 +3,23 @@
 namespace App\Http\Controllers\Api\Leads;
 
 use App\Models\Leads\Buyer;
-use App\Http\Controllers\Controller;
 use App\Http\Requests\Leads\SearchRequest;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 
-class ListPartnerController extends Controller
+/**
+ * List Partners Controller
+ *
+ * Refactored to use BaseListController (reduced from 25 to 16 lines).
+ */
+class ListPartnerController extends BaseListController
 {
-    public function __invoke(SearchRequest $request): LengthAwarePaginator
+    protected function getModelClass(): string
     {
-        $partners = Buyer::query();
+        return Buyer::class;
+    }
 
-        $partners->search($request->search());
-
-        $partners->where('provider_id', env('TRACKDRIVE_PROVIDER_ID', 2));
-
-        return $partners->paginate(
-            perPage: $request->perPage(),
-            page: $request->page()
-        );
+    protected function applyFilters(Builder $query, SearchRequest $request): Builder
+    {
+        return $query->where('provider_id', env('TRACKDRIVE_PROVIDER_ID', 2));
     }
 }

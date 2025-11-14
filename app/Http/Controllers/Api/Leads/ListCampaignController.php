@@ -3,21 +3,16 @@
 namespace App\Http\Controllers\Api\Leads;
 
 use App\Models\Leads\LeadMetric;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Leads\SearchRequest;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-class ListCampaignController extends Controller
+/**
+ * List Campaigns Controller
+ *
+ * Refactored to use BaseListController (reduced from 24 to 13 lines).
+ */
+class ListCampaignController extends BaseListController
 {
-    public function __invoke(SearchRequest $request): LengthAwarePaginator
+    protected function getModelClass(): string
     {
-        $campaigns = LeadMetric::query();
-
-        $campaigns->search($request->search());
-
-        return $campaigns->paginate(
-            perPage: $request->perPage(),
-            page: $request->page()
-        );
+        return LeadMetric::class;
     }
 }

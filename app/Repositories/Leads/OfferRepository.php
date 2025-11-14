@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Leads;
 
+use App\Traits\SavesWithResponse;
 use App\Models\Leads\Offer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class OfferRepository implements ImportRepositoryInterface, SettingsRepositoryInterface
 {
+    use SavesWithResponse;
     /**
      * Summary of create.
      */
@@ -104,28 +106,15 @@ class OfferRepository implements ImportRepositoryInterface, SettingsRepositoryIn
 
     public function saveOffers(Request $request, Offer $offer): array
     {
-        $icon = 'success';
-        $message = 'The offer has been successfully updated';
-        $offer->name = $request->get('name');
-        $offer->type = $request->get('type');
-        $offer->source_url = $request->get('source_url');
-        $offer->provider_id = $request->get('provider_id');
-        $api_key = $request->get('api_key');
-        if (!empty($api_key)) {
-            $offer->api_key = Hash::make($api_key);
-        }
-
-        $save = $offer->save();
-        if (!$save) {
-            $icon = 'error';
-            $message = 'The offer has not been updated';
-        }
-        $response = [
-            'icon' => $icon,
-            'message' => $message,
-            'response' => $save,
-        ];
-
-        return $response;
+        return $this->saveWithResponse($offer, 'offer', function ($model) use ($request) {
+            $model->name = $request->get('name');
+            $model->type = $request->get('type');
+            $model->source_url = $request->get('source_url');
+            $model->provider_id = $request->get('provider_id');
+            $api_key = $request->get('api_key');
+            if (!empty($api_key)) {
+                $model->api_key = Hash::make($api_key);
+            }
+        });
     }
 }

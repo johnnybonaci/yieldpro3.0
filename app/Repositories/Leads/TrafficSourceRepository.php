@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Leads;
 
+use App\Traits\SavesWithResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use App\Models\Leads\TrafficSource;
@@ -12,6 +13,7 @@ use App\Interfaces\Leads\ImportRepositoryInterface;
 
 class TrafficSourceRepository implements ImportRepositoryInterface, SettingsRepositoryInterface
 {
+    use SavesWithResponse;
     /**
      * Summary of create.
      */
@@ -81,25 +83,11 @@ class TrafficSourceRepository implements ImportRepositoryInterface, SettingsRepo
 
     public function saveTrafficSource(Request $request, TrafficSource $traffic_source): array
     {
-        $icon = 'success';
-        $message = 'The Traffic Source has been successfully updated';
-        $traffic_source->name = $request->get('name');
-        $traffic_source->traffic_source_provider_id = $request->get('traffic_source_provider_id');
-        $traffic_source->provider_id = $request->get('provider_id');
-        $traffic_source->updated_at = now();
-
-        $save = $traffic_source->save();
-        if (!$save) {
-            $icon = 'error';
-            $message = 'The Traffic Source has not been updated';
-        }
-        $response = [
-            'icon' => $icon,
-            'message' => $message,
-            'response' => $save,
-        ];
-
-        return $response;
+        return $this->saveWithResponse($traffic_source, 'Traffic Source', function ($model) use ($request) {
+            $model->name = $request->get('name');
+            $model->traffic_source_provider_id = $request->get('traffic_source_provider_id');
+            $model->provider_id = $request->get('provider_id');
+        });
     }
 
     public function show(): array

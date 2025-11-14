@@ -3,21 +3,16 @@
 namespace App\Http\Controllers\Api\Leads;
 
 use App\Models\Leads\PubList;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Leads\SearchRequest;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-class ListPubController extends Controller
+/**
+ * List Pubs Controller
+ *
+ * Refactored to use BaseListController (reduced from 24 to 13 lines).
+ */
+class ListPubController extends BaseListController
 {
-    public function __invoke(SearchRequest $request): LengthAwarePaginator
+    protected function getModelClass(): string
     {
-        $pubs = PubList::query();
-
-        $pubs->search($request->search());
-
-        return $pubs->paginate(
-            perPage: $request->perPage(),
-            page: $request->page()
-        );
+        return PubList::class;
     }
 }

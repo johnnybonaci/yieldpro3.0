@@ -4,9 +4,8 @@ namespace App\Models\Leads;
 
 use App\Casts\Json;
 use App\Traits\FiltersTrait;
-use Illuminate\Support\Facades\DB;
+use App\Traits\Searchable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -15,6 +14,7 @@ class PubList extends Model
 {
     use FiltersTrait;
     use HasFactory;
+    use Searchable;
 
     public $timestamps = false;
 
@@ -31,6 +31,8 @@ class PubList extends Model
     protected $casts = [
         'cpl' => Json::class,
     ];
+
+    protected $searchableColumns = ['CAST(id AS CHAR)', 'pub_lists.name'];
 
     /**
      * Summary of did_numbers.
@@ -54,16 +56,5 @@ class PubList extends Model
     public function pubs(): HasMany
     {
         return $this->hasMany(Pub::class);
-    }
-
-    public function scopeSearch(Builder $query, string $search): Builder
-    {
-        return $query->when($search, function (Builder $query, string $search): Builder {
-            $search = strtolower($search);
-
-            return $query
-                ->where(DB::raw('CAST(id AS CHAR)'), 'LIKE', "%{$search}%")
-                ->orWhere(DB::raw('LOWER(pub_lists.name)'), 'LIKE', '%' . $search . '%');
-        });
     }
 }

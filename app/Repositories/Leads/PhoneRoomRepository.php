@@ -4,6 +4,7 @@ namespace App\Repositories\Leads;
 
 use Exception;
 use Carbon\Carbon;
+use App\Traits\SavesWithResponse;
 use App\Models\Leads\Lead;
 use Illuminate\Http\Request;
 use App\Models\Leads\PhoneRoom;
@@ -20,6 +21,7 @@ use App\Support\Collection as PersonalCollection;
 
 class PhoneRoomRepository extends EloquentRepository implements SettingsRepositoryInterface
 {
+    use SavesWithResponse;
     public const VENDOR_YP = 'pub_lists.name as vendors_yp';
 
     /**
@@ -430,33 +432,19 @@ class PhoneRoomRepository extends EloquentRepository implements SettingsReposito
 
     public function savePhoneRoom(Request $request, PhoneRoom $phone_room): array
     {
-        $icon = 'success';
-        $message = 'The Phone Room has been successfully updated';
-        $phone_room->name = $request->get('name') ?? '';
-        $phone_room->service = $request->get('service') ?? '';
-        $phone_room->config = $request->get('config') ?? '';
-        $phone_room->active = $request->get('active');
+        return $this->saveWithResponse($phone_room, 'Phone Room', function ($model) use ($request) {
+            $model->name = $request->get('name') ?? '';
+            $model->service = $request->get('service') ?? '';
+            $model->config = $request->get('config') ?? '';
+            $model->active = $request->get('active');
 
-        if (!empty($request->get('api_key'))) {
-            $phone_room->api_key = __toHash($request->get('api_key'));
-        }
-        if (!empty($request->get('api_user'))) {
-            $phone_room->api_user = __toHash($request->get('api_user'));
-        }
-        $phone_room->updated_at = now();
-
-        $save = $phone_room->save();
-        if (!$save) {
-            $icon = 'error';
-            $message = 'The Phone Room has not been updated';
-        }
-        $response = [
-            'icon' => $icon,
-            'message' => $message,
-            'response' => $save,
-        ];
-
-        return $response;
+            if (!empty($request->get('api_key'))) {
+                $model->api_key = __toHash($request->get('api_key'));
+            }
+            if (!empty($request->get('api_user'))) {
+                $model->api_user = __toHash($request->get('api_user'));
+            }
+        });
     }
 
     public function apiProcess(array $item): void

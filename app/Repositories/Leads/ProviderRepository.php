@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Leads;
 
+use App\Traits\SavesWithResponse;
 use Illuminate\Http\Request;
 use App\Models\Leads\Provider;
 use Illuminate\Support\Collection;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class ProviderRepository implements SettingsRepositoryInterface
 {
+    use SavesWithResponse;
     /**
      * Summary of create.
      */
@@ -66,29 +68,14 @@ class ProviderRepository implements SettingsRepositoryInterface
 
     public function saveProvider(Request $request, Provider $provider): array
     {
-        $icon = 'success';
-        $message = 'The Provider has been successfully updated';
-        $provider->name = $request->get('name') ?? '';
-        $provider->service = $request->get('service') ?? '';
-        $provider->url = $request->get('url') ?? '';
-        $provider->active = $request->get('active');
-        if (!empty($request->get('api_key'))) {
-            $provider->api_key = __toHash($request->get('api_key'));
-        }
-
-        $provider->updated_at = now();
-
-        $save = $provider->save();
-        if (!$save) {
-            $icon = 'error';
-            $message = 'The Provider has not been updated';
-        }
-        $response = [
-            'icon' => $icon,
-            'message' => $message,
-            'response' => $save,
-        ];
-
-        return $response;
+        return $this->saveWithResponse($provider, 'Provider', function ($model) use ($request) {
+            $model->name = $request->get('name') ?? '';
+            $model->service = $request->get('service') ?? '';
+            $model->url = $request->get('url') ?? '';
+            $model->active = $request->get('active');
+            if (!empty($request->get('api_key'))) {
+                $model->api_key = __toHash($request->get('api_key'));
+            }
+        });
     }
 }

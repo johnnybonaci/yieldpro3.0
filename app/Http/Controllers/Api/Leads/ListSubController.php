@@ -3,21 +3,16 @@
 namespace App\Http\Controllers\Api\Leads;
 
 use App\Models\Leads\Sub;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Leads\SearchRequest;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-class ListSubController extends Controller
+/**
+ * List Subs Controller
+ *
+ * Refactored to use BaseListController (reduced from 24 to 13 lines).
+ */
+class ListSubController extends BaseListController
 {
-    public function __invoke(SearchRequest $request): LengthAwarePaginator
+    protected function getModelClass(): string
     {
-        $subs = Sub::query();
-
-        $subs->search($request->search());
-
-        return $subs->paginate(
-            perPage: $request->perPage(),
-            page: $request->page()
-        );
+        return Sub::class;
     }
 }

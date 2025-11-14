@@ -3,15 +3,15 @@
 namespace App\Models\Leads;
 
 use App\Traits\FiltersTrait;
-use Illuminate\Support\Facades\DB;
+use App\Traits\Searchable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class LeadMetric extends Model
 {
     use HasFactory;
     use FiltersTrait;
+    use Searchable;
 
     public $timestamps = true;
 
@@ -28,12 +28,5 @@ class LeadMetric extends Model
         'utm_content',
     ];
 
-    public function scopeSearch(Builder $query, string $search): Builder
-    {
-        return $query->when($search, function (Builder $query, string $search): Builder {
-            return $query->where(
-                DB::raw('LOWER(lead_metrics.campaign_name)'), 'like', '%' . strtolower($search) . '%'
-            );
-        });
-    }
+    protected $searchableColumns = ['lead_metrics.campaign_name'];
 }

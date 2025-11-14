@@ -4,6 +4,7 @@ namespace App\Repositories\Leads;
 
 use Exception;
 use Carbon\Carbon;
+use App\Traits\SavesWithResponse;
 use App\Models\Leads\Buyer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -14,6 +15,7 @@ use App\Interfaces\Leads\ImportRepositoryInterface;
 
 class BuyerRepository implements ImportRepositoryInterface, SettingsRepositoryInterface
 {
+    use SavesWithResponse;
     /**
      * Summary of create.
      */
@@ -75,27 +77,13 @@ class BuyerRepository implements ImportRepositoryInterface, SettingsRepositoryIn
 
     public function saveBuyers(Request $request, Buyer $buyer): array
     {
-        $icon = 'success';
-        $message = 'The Buyer has been successfully updated';
-        $buyer->name = $request->get('name');
-        $buyer->buyer_provider_id = $request->get('buyer_provider_id');
-        $buyer->provider_id = env('TRACKDRIVE_PROVIDER_ID');
-        $buyer->user_id = $request->get('user_id');
-        $buyer->revenue = $request->get('revenue');
-        $buyer->updated_at = now();
-
-        $save = $buyer->save();
-        if (!$save) {
-            $icon = 'error';
-            $message = 'The Buyer has not been updated';
-        }
-        $response = [
-            'icon' => $icon,
-            'message' => $message,
-            'response' => $save,
-        ];
-
-        return $response;
+        return $this->saveWithResponse($buyer, 'Buyer', function ($model) use ($request) {
+            $model->name = $request->get('name');
+            $model->buyer_provider_id = $request->get('buyer_provider_id');
+            $model->provider_id = env('TRACKDRIVE_PROVIDER_ID');
+            $model->user_id = $request->get('user_id');
+            $model->revenue = $request->get('revenue');
+        });
     }
 
     public function saveSelection(Request $request): array

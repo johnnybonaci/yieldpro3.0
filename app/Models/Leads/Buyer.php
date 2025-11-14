@@ -3,9 +3,8 @@
 namespace App\Models\Leads;
 
 use App\Traits\FiltersTrait;
-use Illuminate\Support\Facades\DB;
+use App\Traits\Searchable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -13,6 +12,7 @@ class Buyer extends Model
 {
     use HasFactory;
     use FiltersTrait;
+    use Searchable;
 
     public $timestamps = false;
 
@@ -26,17 +26,10 @@ class Buyer extends Model
         'updated_at',
     ];
 
+    protected $searchableColumns = ['buyers.name'];
+
     public function provider(): BelongsTo
     {
         return $this->belongsTo(Provider::class);
-    }
-
-    public function scopeSearch(Builder $query, string $search): Builder
-    {
-        return $query->when($search, function (Builder $query, string $search): Builder {
-            return $query->where(
-                DB::raw('LOWER(buyers.name)'), 'like', '%' . strtolower($search) . '%'
-            );
-        });
     }
 }

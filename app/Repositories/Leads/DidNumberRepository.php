@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Leads;
 
+use App\Traits\SavesWithResponse;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\Leads\DidNumber;
@@ -13,6 +14,7 @@ use App\Interfaces\Leads\ImportRepositoryInterface;
 
 class DidNumberRepository implements ImportRepositoryInterface, SettingsRepositoryInterface
 {
+    use SavesWithResponse;
     /**
      * Summary of create.
      */
@@ -96,31 +98,16 @@ class DidNumberRepository implements ImportRepositoryInterface, SettingsReposito
 
     public function saveDidNumbers(Request $request, DidNumber $did_number): array
     {
-        $icon = 'success';
-        $message = 'The DID Number has been successfully updated';
-
-        $pub_id = $request->get('pub_id');
-        $did_number->fill([
-            'description' => $request->get('description'),
-            'campaign_name' => $request->get('campaign_name') ?? '',
-            'sub_id' => $request->get('sub_id'),
-            'pub_id' => ($pub_id === 'undefined' || empty($pub_id)) ? null : $pub_id,
-            'traffic_source_id' => $request->get('traffic_source_id'),
-            'offer_id' => $request->get('offer_id'),
-            'updated_at' => now(),
-        ]);
-
-        $save = $did_number->save();
-        if (!$save) {
-            $icon = 'error';
-            $message = 'The DID Number has not been updated';
-        }
-        $response = [
-            'icon' => $icon,
-            'message' => $message,
-            'response' => $save,
-        ];
-
-        return $response;
+        return $this->saveWithResponse($did_number, 'DID Number', function ($model) use ($request) {
+            $pub_id = $request->get('pub_id');
+            $model->fill([
+                'description' => $request->get('description'),
+                'campaign_name' => $request->get('campaign_name') ?? '',
+                'sub_id' => $request->get('sub_id'),
+                'pub_id' => ($pub_id === 'undefined' || empty($pub_id)) ? null : $pub_id,
+                'traffic_source_id' => $request->get('traffic_source_id'),
+                'offer_id' => $request->get('offer_id'),
+            ]);
+        });
     }
 }
