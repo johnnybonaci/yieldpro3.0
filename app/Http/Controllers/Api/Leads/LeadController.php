@@ -59,6 +59,15 @@ class LeadController extends Controller
     }
 
     /**
+     * Legacy method - kept for backward compatibility.
+     * @deprecated Use index() instead
+     */
+    public function index_old(Request $request): LeadCollection
+    {
+        return $this->index($request);
+    }
+
+    /**
      * Get paginated list of leads using live metrics service.
      * Alternative implementation for performance testing.
      */

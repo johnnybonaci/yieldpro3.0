@@ -76,6 +76,15 @@ class CallController extends Controller
         return CallCollection::make($result)->additional($summary);
     }
 
+    /**
+     * Legacy method - kept for backward compatibility.
+     * @deprecated Use index() instead
+     */
+    public function index_old(Request $request): CallCollection
+    {
+        return $this->index($request);
+    }
+
     public function metadata(Request $request): mixed
     {
         /*
