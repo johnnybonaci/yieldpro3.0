@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Leads;
 
 use Carbon\Carbon;
+use App\Traits\HandlesDateRange;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
@@ -11,8 +12,14 @@ use Illuminate\Contracts\Pagination\Paginator;
 use App\Repositories\Leads\PhoneRoomRepository;
 use App\Http\Resources\Leads\PhoneRoomCollection;
 
+/**
+ * Phone Room Leads Controller - Refactored for SonarCube Quality
+ * Uses HandlesDateRange trait to eliminate duplicate code
+ */
 class PhoneRoomController extends Controller
 {
+    use HandlesDateRange;
+
     public function __construct(
         protected PhoneRoomRepository $phone_room_repository,
     ) {
@@ -23,13 +30,11 @@ class PhoneRoomController extends Controller
      */
     public function index(Request $request): PhoneRoomCollection
     {
-        $date_start = $request->get('date_start', now()->format('Y-m-d'));
-        $date_end = $request->get('date_end', now()->format('Y-m-d'));
+        extract($this->getDateRange($request));
+        ['page' => $page, 'size' => $size] = $this->getPaginationParams($request);
 
         $leads = $this->phone_room_repository->logs($date_start, $date_end);
         $widget = $this->phone_room_repository->widget($date_start, $date_end);
-        $page = $request->get('page', 1);
-        $size = $request->get('size', 20);
         $result = $leads->sortsFields('created_at')->paginate($size, ['*'], 'page', $page);
 
         return PhoneRoomCollection::make($result)->additional($widget);
@@ -51,9 +56,9 @@ class PhoneRoomController extends Controller
      */
     public function metrics(Request $request): Paginator
     {
+        ['page' => $page, 'size' => $size] = $this->getPaginationParams($request);
+
         $leads = $this->phone_room_repository->metrics();
-        $page = $request->get('page', 1);
-        $size = $request->get('size', 20);
         $result = $leads->paginate($size, $page, $leads->count(), 'page');
 
         return $result;
@@ -64,13 +69,12 @@ class PhoneRoomController extends Controller
      */
     public function reports(Request $request): Paginator
     {
-        $date_start = $request->get('date_start', now()->format('Y-m-d'));
-        $date_end = $request->get('date_end', now()->format('Y-m-d'));
+        extract($this->getDateRange($request));
+        ['page' => $page, 'size' => $size] = $this->getPaginationParams($request);
+
         $date_start = Carbon::parse($date_start)->format('Y-m-d 00:00:00');
         $date_end = Carbon::parse($date_end)->format('Y-m-d 23:59:59');
         $leads = $this->phone_room_repository->reports($date_start, $date_end);
-        $page = $request->get('page', 1);
-        $size = $request->get('size', 20);
         $result = $leads->paginate($size, ['*'], 'page', $page);
 
         return $result;
