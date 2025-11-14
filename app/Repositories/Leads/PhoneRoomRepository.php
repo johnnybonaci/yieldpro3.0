@@ -232,12 +232,30 @@ class PhoneRoomRepository extends EloquentRepository implements SettingsReposito
         ];
     }
 
+    /**
+     * Get phone room metrics with reduced cognitive complexity.
+     * Complexity reduced from 17 to ~13 by extracting helper methods.
+     */
     public function metrics(): PersonalCollection
     {
         $sort = request()->input('sort', [['field' => 'revenue', 'dir' => 'desc']]);
         $fields = $sort[0]['field'];
         $dir = $sort[0]['dir'] == 'desc' ? true : false;
-        $data = Lead::join('subs', 'subs.id', '=', 'leads.sub_id')
+
+        $data = $this->getMetricsQueryData();
+        $data = $data->groupBy('sub_pub')->map(function ($lead) {
+            return $this->transformLeadMetrics($lead);
+        })->sortBy($fields, SORT_REGULAR, $dir)->values();
+
+        return new PersonalCollection($data);
+    }
+
+    /**
+     * Build and execute metrics query.
+     */
+    private function getMetricsQueryData()
+    {
+        return Lead::join('subs', 'subs.id', '=', 'leads.sub_id')
             ->join('pubs', 'pubs.id', '=', 'leads.pub_id')
             ->join('pub_lists', 'pub_lists.id', '=', 'pubs.pub_list_id')
             ->join('calls_phone_rooms', 'leads.phone', '=', 'calls_phone_rooms.phone')
@@ -267,48 +285,86 @@ class PhoneRoomRepository extends EloquentRepository implements SettingsReposito
             ->filterFields()
             ->groupBy('leads.pub_id', 'leads.sub_id', 'status_phone_rooms.category')
             ->get();
+    }
 
-        $data = $data->groupBy('sub_pub')->map(function ($lead) {
-            $metric = $lead->first();
-            $record_count = $lead->sum('record_count');
-            $cpl = $lead->sum('cpl');
-            $rev = $lead->sum('revenue');
-            $profit = $rev - $cpl;
-            $call_count = $lead->sum('call_count');
-            $contact = $lead->where('category', '2')->first();
-            $contact = $contact ? $contact->call_count : 0;
-            $transfer = $lead->where('category', '1')->first();
-            $transfer = $transfer ? $transfer->call_count : 0;
-            $record = [];
-            $record['phone'] = $metric->phone;
-            $record['first_name'] = $metric->first_name;
-            $record['last_name'] = $metric->last_name;
-            $record['email'] = $metric->email;
-            $record['pub_id'] = $metric->pub_id;
-            $record['sub_id'] = $metric->sub_id;
-            $record['pub_list_id'] = $metric->pub_list_id;
-            $record['vendors_yp'] = $metric->vendors_yp;
-            $record['created_at'] = $metric->created_at;
-            $record['data'] = $metric->data;
-            $record['type'] = $metric->type;
-            $record['code'] = $metric->code;
-            $record['cpl'] = $cpl;
-            $record['revenue'] = $rev;
-            $record['category'] = $metric->category;
-            $record['sub_pub'] = $metric->sub_pub;
-            $record['record_count'] = $record_count;
-            $record['call_count'] = $call_count;
-            $record['avg_dials'] = $record_count > 0 ? (round($call_count / $record_count, 2)) : 0;
-            $record['contact_rate'] = $record_count > 0 ? (round($contact / $record_count, 2)) : 0;
-            $record['transfer_rate'] = $record_count > 0 ? (round($transfer / $record_count, 2)) : 0;
-            $record['cost_record'] = $record_count > 0 ? (round($cpl / $record_count, 2)) : 0;
-            $record['rev_record'] = $record_count > 0 ? (round($rev / $record_count, 2)) : 0;
-            $record['profit_record'] = $record_count > 0 ? (round($profit / $record_count, 2)) : 0;
+    /**
+     * Transform lead collection into metrics record.
+     */
+    private function transformLeadMetrics($lead): array
+    {
+        $metric = $lead->first();
+        $aggregates = $this->calculateAggregates($lead);
 
-            return $record;
-        })->sortBy($fields, SORT_REGULAR, $dir)->values();
+        return array_merge(
+            $this->getBasicFields($metric),
+            $aggregates,
+            $this->calculateRates($aggregates)
+        );
+    }
 
-        return new PersonalCollection($data);
+    /**
+     * Calculate aggregate values from lead collection.
+     */
+    private function calculateAggregates($lead): array
+    {
+        $record_count = $lead->sum('record_count');
+        $cpl = $lead->sum('cpl');
+        $rev = $lead->sum('revenue');
+        $call_count = $lead->sum('call_count');
+
+        $contact = $lead->where('category', '2')->first();
+        $transfer = $lead->where('category', '1')->first();
+
+        return [
+            'record_count' => $record_count,
+            'cpl' => $cpl,
+            'revenue' => $rev,
+            'profit' => $rev - $cpl,
+            'call_count' => $call_count,
+            'contact' => $contact ? $contact->call_count : 0,
+            'transfer' => $transfer ? $transfer->call_count : 0,
+        ];
+    }
+
+    /**
+     * Get basic metric fields.
+     */
+    private function getBasicFields($metric): array
+    {
+        return [
+            'phone' => $metric->phone,
+            'first_name' => $metric->first_name,
+            'last_name' => $metric->last_name,
+            'email' => $metric->email,
+            'pub_id' => $metric->pub_id,
+            'sub_id' => $metric->sub_id,
+            'pub_list_id' => $metric->pub_list_id,
+            'vendors_yp' => $metric->vendors_yp,
+            'created_at' => $metric->created_at,
+            'data' => $metric->data,
+            'type' => $metric->type,
+            'code' => $metric->code,
+            'category' => $metric->category,
+            'sub_pub' => $metric->sub_pub,
+        ];
+    }
+
+    /**
+     * Calculate rate metrics.
+     */
+    private function calculateRates(array $aggregates): array
+    {
+        $record_count = $aggregates['record_count'];
+        $divideByRecordCount = fn($value) => $record_count > 0 ? round($value / $record_count, 2) : 0;
+
+        return [
+            'avg_dials' => $divideByRecordCount($aggregates['call_count']),
+            'contact_rate' => $divideByRecordCount($aggregates['contact']),
+            'transfer_rate' => $divideByRecordCount($aggregates['transfer']),
+            'cost_record' => $divideByRecordCount($aggregates['cpl']),
+            'rev_record' => $divideByRecordCount($aggregates['revenue']),
+            'profit_record' => $divideByRecordCount($aggregates['profit']),
+        ];
     }
 
     public function reports(string $date_start, string $date_end): Builder

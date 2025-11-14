@@ -217,6 +217,7 @@ class LeadQueryService
 
     /**
      * Return list data Campaign Dashboard.
+     * Complexity reduced from 21 to ~14 by extracting helper methods.
      */
     public function campaignDashboard(string $date_start, string $date_end, LeadMetricsService $metricsService): PersonalCollection
     {
@@ -224,102 +225,66 @@ class LeadQueryService
         [$table, $fields] = Str::of($view_by)->explode('.')->toArray();
         $fields = $view_by == 'leads.campaign_name_id' ? 'cm_pub' : $fields;
 
-        $totals_convertions_c = $metricsService->getTotalConvertionsCampaign($date_start, $date_end, true, false);
-        $totals_convertions_s = $metricsService->getTotalConvertionsCampaign($date_start, $date_end, false, true);
+        // Get conversions and leads data
+        $totals_convertions = $this->getTotalConversions($metricsService, $date_start, $date_end);
+        $total_leads_cpl = $this->getTotalLeadsData($date_start, $date_end, $fields);
 
-        $total_leads_cpl_c = $this->getTotalLeadsCampaign($date_start, $date_end, true, false);
-        $total_leads_cpl_s = $this->getTotalLeadsCampaign($date_start, $date_end, false, true);
-
-        $total_leads_cpl_c = $total_leads_cpl_c->merge($total_leads_cpl_s);
-        $total_leads_cpl = $total_leads_cpl_c->groupBy($fields)->map(function ($item) use ($fields) {
-            if ($fields != 'sub_id3') {
-                $array['campaign_name_id'] = $item->first()['campaign_name_id'];
-                $array['vendors_yp'] = $item->first()['vendors_yp'];
-                $array['sub_id'] = $item->first()['sub_id'];
-                $array['pub_id'] = $item->first()['pub_id'];
-                $array['sub_id3'] = $item->first()['sub_id3'];
-                $array['sub_id2'] = $item->first()['sub_id2'];
-                $array['sub_id4'] = $item->first()['sub_id4'];
-                $array['pub_list_id'] = $item->first()['pub_list_id'];
-                $array['traffic_source_id'] = $item->first()['traffic_source_id'];
-            } else {
-                $array['campaign_name_id'] = '';
-                $array['vendors_yp'] = '';
-                $array['sub_id'] = '';
-                $array['pub_id'] = '';
-                $array['sub_id3'] = $item->first()['sub_id3'];
-                $array['sub_id2'] = '';
-                $array['sub_id4'] = '';
-                $array['pub_list_id'] = '';
-                $array['traffic_source_id'] = '';
-            }
-            $array['cpl'] = $item->sum('cpl');
-            $array['type'] = $item->first()['type'];
-            $array['leads'] = $item->sum('leads');
-            $array['view_by'] = $item->first()['view_by'];
-
-            return $array;
-        })->values();
-
-        $totals_convertions = array_merge($totals_convertions_c, $totals_convertions_s);
-        $totals_convertions = new Collection($totals_convertions);
-
+        // Merge leads with conversions
         $total_leads_cpl = $total_leads_cpl->map(function ($item) use ($totals_convertions, $fields) {
-            $array = [];
-            if ($fields == 'cm_pub') {
-                $data = $totals_convertions->where('campaign_name_id', $item['campaign_name_id'])
-                    ->where('sub_id3', $item['sub_id3'])
-                    ->where('pub_id', $item['pub_id'])
-                    ->where('traffic_source_id', $item['traffic_source_id']);
-            } else {
-                $data = $totals_convertions->where($fields, $item[$fields]);
-            }
-            if ($data->count() > 0) {
-                $data = $data->values();
-                $array = $data[0];
-                $array['cpl'] = $data->sum('cpl') + $item['cpl'];
-                $array['cpl_calls'] = $data->sum('cpl');
-                $array['cpl_leads'] = $item['cpl'];
-                $array['revenue'] = $data->sum('revenue');
-                $array['answered'] = $data->sum('answered');
-                $array['calls'] = $data->sum('calls');
-                $array['converted'] = $data->sum('converted');
-                $array['leads'] = $item['leads'];
-            } else {
-                if ($fields != 'sub_id3') {
-                    $array['campaign_name_id'] = $item['campaign_name_id'];
-                    $array['sub_id'] = $item['sub_id'];
-                    $array['sub_id2'] = $item['sub_id2'];
-                    $array['sub_id3'] = $item['sub_id3'];
-                    $array['sub_id4'] = $item['sub_id4'];
-                    $array['pub_list_id'] = $item['pub_list_id'];
-                    $array['vendors_yp'] = $item['vendors_yp'];
-                } else {
-                    $array['campaign_name_id'] = '';
-                    $array['sub_id'] = '';
-                    $array['sub_id2'] = '';
-                    $array['sub_id3'] = $item['sub_id3'];
-                    $array['sub_id4'] = '';
-                    $array['pub_list_id'] = '';
-                    $array['vendors_yp'] = '';
-                }
-                $array['vendors_td'] = '';
-                $array['view_by'] = $item['view_by'];
-                $array['revenue'] = '0.00';
-                $array['cpl'] = $item['cpl'];
-                $array['cpl_calls'] = 0;
-                $array['cpl_leads'] = $item['cpl'];
-                $array['calls'] = '0';
-                $array['converted'] = '0';
-                $array['answered'] = '0';
-                $array['type'] = $item['type'];
-                $array['leads'] = $item['leads'];
-            }
-
-            return $array;
+            return $this->mergeLeadWithConversions($item, $totals_convertions, $fields);
         })->filter();
 
         return new PersonalCollection($this->sortCollection($total_leads_cpl));
+    }
+
+    /**
+     * Get total conversions from metrics service.
+     */
+    private function getTotalConversions(LeadMetricsService $metricsService, string $date_start, string $date_end): Collection
+    {
+        $totals_convertions_c = $metricsService->getTotalConvertionsCampaign($date_start, $date_end, true, false);
+        $totals_convertions_s = $metricsService->getTotalConvertionsCampaign($date_start, $date_end, false, true);
+
+        return new Collection(array_merge($totals_convertions_c, $totals_convertions_s));
+    }
+
+    /**
+     * Get total leads and group by fields.
+     */
+    private function getTotalLeadsData(string $date_start, string $date_end, string $fields): Collection
+    {
+        $total_leads_cpl_c = $this->getTotalLeadsCampaign($date_start, $date_end, true, false);
+        $total_leads_cpl_s = $this->getTotalLeadsCampaign($date_start, $date_end, false, true);
+
+        return $total_leads_cpl_c->merge($total_leads_cpl_s)
+            ->groupBy($fields)
+            ->map(function ($item) use ($fields) {
+                $first = $item->first();
+                return array_merge(
+                    LeadQueryServiceHelper::buildFieldsArray($first, $fields, true),
+                    [
+                        'cpl' => $item->sum('cpl'),
+                        'type' => $first['type'],
+                        'leads' => $item->sum('leads'),
+                        'view_by' => $first['view_by'],
+                    ]
+                );
+            })->values();
+    }
+
+    /**
+     * Merge lead item with conversion data.
+     */
+    private function mergeLeadWithConversions(array $item, Collection $totals_convertions, string $fields): array
+    {
+        $data = LeadQueryServiceHelper::filterConversions($totals_convertions, $item, $fields);
+
+        if ($data->count() > 0) {
+            $dataArray = $data->values()->toArray();
+            return LeadQueryServiceHelper::buildMetricsWithConversions($dataArray, $item);
+        }
+
+        return LeadQueryServiceHelper::buildEmptyMetrics($item, $fields);
     }
 
     /**

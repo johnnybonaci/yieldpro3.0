@@ -3,13 +3,29 @@
 namespace App\Models\Leads;
 
 use App\Traits\FiltersTrait;
+use App\Traits\MediaAlphaScopes;
+use App\Traits\MediaAlphaMetrics;
+use App\Traits\MediaAlphaAnalytics;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+/**
+ * MediaAlphaResponse Model - Refactored for SonarCube Compliance
+ *
+ * Reduced from 25 methods to 9 methods by extracting:
+ * - 9 query scopes → MediaAlphaScopes trait
+ * - 6 computed attributes → MediaAlphaMetrics trait
+ * - 2 analytics methods → MediaAlphaAnalytics trait
+ *
+ * Now complies with SonarCube's 20-method limit.
+ */
 class MediaAlphaResponse extends Model
 {
     use HasFactory;
     use FiltersTrait;
+    use MediaAlphaScopes;      // Query scopes (9 methods)
+    use MediaAlphaMetrics;     // Computed attributes (6 methods)
+    use MediaAlphaAnalytics;   // Analytics methods (2 methods)
 
     protected $fillable = [
         'phone_id',
@@ -222,193 +238,9 @@ class MediaAlphaResponse extends Model
         return ['buyer' => $buyer, 'revenue' => null];
     }
 
-    public function scopeByStatus($query, string $status)
-    {
-        return $query->where('status', $status);
-    }
-
-    public function scopeByPlacementId($query, string $placementId)
-    {
-        return $query->where('placement_id', $placementId);
-    }
-
-    public function scopeByDateRange($query, $startDate, $endDate)
-    {
-        return $query->whereBetween('created_at', [$startDate, $endDate]);
-    }
-
-    public function scopeWithRevenue($query)
-    {
-        return $query->whereNotNull('post_revenue')->where('post_revenue', '>', 0);
-    }
-
-    public function scopeSuccessful($query)
-    {
-        return $query->where('ping_status', 'success')
-            ->where('post_status', 'succeeded');
-    }
-
-    public function scopeFailed($query)
-    {
-        return $query->where(function ($q) {
-            $q->where('ping_status', 'error')
-                ->orWhere('post_status', 'failed');
-        });
-    }
-
-    // Nuevos scopes para análisis más detallado
-    public function scopeWithValidBuyers($query)
-    {
-        return $query->where('total_buyers', '>', 0);
-    }
-
-    public function scopeWithAcceptedBuyers($query)
-    {
-        return $query->where('accepted_buyers', '>', 0);
-    }
-
-    public function scopeByRevenueRange($query, $min = null, $max = null)
-    {
-        if ($min !== null) {
-            $query->where('post_revenue', '>=', $min);
-        }
-        if ($max !== null) {
-            $query->where('post_revenue', '<=', $max);
-        }
-
-        return $query;
-    }
-
-    // Atributos calculados mejorados
-    public function getFormattedPhoneAttribute(): string
-    {
-        $phone = preg_replace('/[^0-9]/', '', $this->phone_id);
-        if (strlen($phone) === 10) {
-            return sprintf(
-                '(%s) %s-%s',
-                substr($phone, 0, 3),
-                substr($phone, 3, 3),
-                substr($phone, 6, 4)
-            );
-        }
-
-        return $this->phone_id;
-    }
-
-    public function getTotalProcessingTimeAttribute(): ?float
-    {
-        if ($this->ping_time && $this->post_time) {
-            return round($this->ping_time + $this->post_time, 3);
-        }
-
-        return null;
-    }
-
-    public function getConversionRateAttribute(): ?float
-    {
-        if ($this->total_buyers > 0) {
-            return round(($this->accepted_buyers / $this->total_buyers) * 100, 2);
-        }
-
-        return null;
-    }
-
-    public function getRevenuePerBuyerAttribute(): ?float
-    {
-        if ($this->accepted_buyers > 0 && $this->post_revenue > 0) {
-            return round($this->post_revenue / $this->accepted_buyers, 2);
-        }
-
-        return null;
-    }
-
-    public function getEfficiencyScoreAttribute(): ?float
-    {
-        // Score basado en revenue, tiempo de respuesta y tasa de conversión
-        if (!$this->post_revenue || !$this->total_processing_time || !$this->conversion_rate) {
-            return null;
-        }
-
-        // Fórmula: (Revenue * Conversion Rate) / Processing Time
-        return round(($this->post_revenue * $this->conversion_rate) / $this->total_processing_time, 2);
-    }
-
-    public function getStatusSummaryAttribute(): array
-    {
-        return [
-            'overall_status' => $this->status,
-            'ping_successful' => $this->ping_status === 'success',
-            'post_successful' => $this->post_status === 'succeeded',
-            'has_revenue' => $this->post_revenue > 0,
-            'has_buyers' => $this->total_buyers > 0,
-            'has_accepted_buyers' => $this->accepted_buyers > 0,
-        ];
-    }
-
     // Relaciones
     public function config()
     {
         return $this->belongsTo(MediaAlphaConfig::class, 'placement_id', 'placement_id');
-    }
-
-    // Métodos para análisis de datos
-    public function getBuyerDetails(): array
-    {
-        $details = [];
-
-        if ($this->ping_buyers) {
-            foreach ($this->ping_buyers as $buyer) {
-                $buyerId = $buyer['buyer_id'] ?? $buyer['buyer'] ?? 'unknown';
-                $details[$buyerId] = [
-                    'ping' => $buyer,
-                    'post' => null,
-                    'final_status' => $buyer['status'] ?? 'unknown',
-                ];
-            }
-        }
-
-        if ($this->post_buyers) {
-            foreach ($this->post_buyers as $buyer) {
-                $buyerId = $buyer['buyer_id'] ?? $buyer['buyer'] ?? 'unknown';
-                if (isset($details[$buyerId])) {
-                    $details[$buyerId]['post'] = $buyer;
-                    $details[$buyerId]['final_status'] = $buyer['status'] ?? 'unknown';
-                } else {
-                    $details[$buyerId] = [
-                        'ping' => null,
-                        'post' => $buyer,
-                        'final_status' => $buyer['status'] ?? 'unknown',
-                    ];
-                }
-            }
-        }
-
-        return $details;
-    }
-
-    public function getPerformanceMetrics(): array
-    {
-        return [
-            'timing' => [
-                'ping_time' => $this->ping_time,
-                'post_time' => $this->post_time,
-                'total_time' => $this->total_processing_time,
-            ],
-            'buyers' => [
-                'total' => $this->total_buyers,
-                'accepted' => $this->accepted_buyers,
-                'rejected' => $this->rejected_buyers,
-                'conversion_rate' => $this->conversion_rate,
-            ],
-            'financial' => [
-                'revenue' => $this->post_revenue,
-                'highest_bid' => $this->highest_bid,
-                'revenue_per_buyer' => $this->revenue_per_buyer,
-            ],
-            'efficiency' => [
-                'efficiency_score' => $this->efficiency_score,
-                'status_summary' => $this->status_summary,
-            ],
-        ];
     }
 }
