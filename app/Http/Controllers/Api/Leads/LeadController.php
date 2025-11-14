@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers\Api\Leads;
 
-use App\Traits\HandlesDateRange;
+use Generator;
 use App\Models\Leads\Lead;
 use Illuminate\Http\Request;
+use App\Traits\HandlesDateRange;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 use App\Services\Leads\LeadService;
@@ -26,7 +27,7 @@ use App\Http\Resources\Leads\LiveLeadCollection;
  * - Consolidated history methods
  * - Removed empty methods (show, destroy)
  * - Improved generator function
- * - Reduced from 232 to ~170 lines (-27%)
+ * - Reduced from 232 to ~170 lines (-27%).
  */
 class LeadController extends Controller
 {
@@ -86,9 +87,7 @@ class LeadController extends Controller
     /**
      * Get historical leads data.
      *
-     * @param Request $request
      * @param bool $useNew Use new history implementation
-     * @return mixed
      */
     public function historyLeads(Request $request, bool $useNew = true): mixed
     {
@@ -219,8 +218,9 @@ class LeadController extends Controller
 
     /**
      * Generator for leads cursor - extracted for better code organization.
+     * @param mixed $leadsQuery
      */
-    private function leadGenerator($leadsQuery): \Generator
+    private function leadGenerator($leadsQuery): Generator
     {
         foreach ($leadsQuery as $lead) {
             yield $lead;

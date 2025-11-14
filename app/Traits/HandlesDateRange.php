@@ -15,7 +15,6 @@ trait HandlesDateRange
     /**
      * Extract date range from request with defaults.
      *
-     * @param Request $request
      * @return array Contains: date_start, date_end, newstart, newend
      */
     protected function getDateRange(Request $request): array
@@ -32,7 +31,6 @@ trait HandlesDateRange
     /**
      * Get pagination parameters from request.
      *
-     * @param Request $request
      * @return array Contains: page, size
      */
     protected function getPaginationParams(Request $request): array

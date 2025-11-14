@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers\Api\Leads;
 
-use App\Traits\HandlesDateRange;
 use App\Models\Leads\Sub;
 use App\Models\Leads\Buyer;
 use App\Models\Leads\Offer;
 use App\Models\Leads\State;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use App\Models\Leads\PubList;
 use App\Models\Leads\Provider;
 use App\Models\Leads\Recording;
 use App\Models\Leads\Convertion;
 use App\Models\Leads\LeadMetric;
+use App\Traits\HandlesDateRange;
+use Illuminate\Http\JsonResponse;
 use App\Exports\Leads\CallsExport;
 use Spatie\Permission\Models\Role;
 use App\Enums\TranscriptStatusEnum;
@@ -42,13 +42,14 @@ use App\Repositories\Leads\CallsApiRepository;
  * - Uses HandlesDateRange trait to eliminate duplicate code
  * - Consolidated index_old() into index()
  * - Improved JSON responses
- * - Reduced from 368 to ~290 lines
+ * - Reduced from 368 to ~290 lines.
  */
 class CallController extends Controller
 {
     use HandlesDateRange;
 
     public const XLS = '.xlsx';
+
     public const RULE_REQUIRED = 'required|integer';
 
     public function __construct(

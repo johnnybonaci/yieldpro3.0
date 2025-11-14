@@ -5,15 +5,15 @@ namespace App\Repositories\Leads;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
 use App\Repositories\EloquentRepository;
-use Illuminate\Database\Eloquent\Builder;
 use App\Services\Leads\LeadQueryService;
+use Illuminate\Database\Eloquent\Builder;
 use App\Services\Leads\LeadMetricsService;
 use App\Services\Leads\LeadCreationService;
 use App\Support\Collection as PersonalCollection;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
- * Lead API Repository - Refactored as Facade Pattern
+ * Lead API Repository - Refactored as Facade Pattern.
  *
  * This class has been refactored from 986 lines to ~140 lines by extracting
  * responsibilities into specialized services:
@@ -33,7 +33,9 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 class LeadApiRepository extends EloquentRepository
 {
     protected LeadCreationService $creationService;
+
     protected LeadQueryService $queryService;
+
     protected LeadMetricsService $metricsService;
 
     public function __construct()

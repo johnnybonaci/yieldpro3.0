@@ -16,18 +16,13 @@ use Illuminate\Contracts\Pagination\Paginator;
  */
 abstract class BaseSettingsController extends Controller
 {
-    /**
-     * @param SettingsRepositoryInterface $repository
-     */
     public function __construct(
-        protected SettingsRepositoryInterface $repository
-    ) {}
+        protected SettingsRepositoryInterface $repository,
+    ) {
+    }
 
     /**
      * Display a paginated listing of the resource.
-     *
-     * @param Request $request
-     * @return Paginator
      */
     public function index(Request $request): Paginator
     {
@@ -45,9 +40,7 @@ abstract class BaseSettingsController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param Request $request
      * @param mixed $model
-     * @return JsonResponse
      */
     public function update(Request $request, $model): JsonResponse
     {

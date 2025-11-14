@@ -2,21 +2,21 @@
 
 namespace App\Services\Leads;
 
-use App\Models\Leads\Sub;
+use Carbon\Carbon;
 use App\Models\Leads\Pub;
+use App\Models\Leads\Sub;
 use App\Models\Leads\Lead;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use App\Models\Leads\Convertion;
 use App\Models\Leads\HistoryLeads;
-use Illuminate\Support\Collection;
 use App\Models\Leads\LeadPageView;
+use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
 use App\Support\Collection as PersonalCollection;
-use Illuminate\Support\Arr;
-use Carbon\Carbon;
 
 /**
- * Lead Query Service
+ * Lead Query Service.
  *
  * Handles all lead queries, campaign dashboards, and data retrieval.
  * Extracted from LeadApiRepository to comply with SonarCube standards.
@@ -47,7 +47,7 @@ class LeadQueryService
             'leads.campaign_name_id', 'leads.universal_lead_id', 'leads.trusted_form',
             'subs.sub_id', 'pubs.pub_list_id', 'leads.created_at', 'leads.cpl',
             'pub_lists.name as vendors_yp', 'offers.name as offers',
-            'convertions.calls', 'convertions.status', 'leads.sub_id5'
+            'convertions.calls', 'convertions.status', 'leads.sub_id5',
         ];
 
         if ($date_record == 'date_created') {

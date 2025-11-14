@@ -41,7 +41,7 @@ class ProviderRepository implements SettingsRepositoryInterface
     }
 
     /**
-     * Implementation of SettingsRepositoryInterface
+     * Implementation of SettingsRepositoryInterface.
      */
     public function getQuery(): Builder
     {
@@ -49,7 +49,7 @@ class ProviderRepository implements SettingsRepositoryInterface
     }
 
     /**
-     * Implementation of SettingsRepositoryInterface
+     * Implementation of SettingsRepositoryInterface.
      */
     public function save(Request $request, Model $model): array
     {
@@ -57,7 +57,7 @@ class ProviderRepository implements SettingsRepositoryInterface
     }
 
     /**
-     * Implementation of SettingsRepositoryInterface
+     * Implementation of SettingsRepositoryInterface.
      */
     public function getDefaultSortField(): string
     {

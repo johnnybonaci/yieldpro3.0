@@ -3,8 +3,8 @@
 namespace App\Contracts;
 
 use Illuminate\Http\Request;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Interface for Settings Repository pattern.
@@ -20,8 +20,6 @@ interface SettingsRepositoryInterface
     /**
      * Save or update an item from request data.
      *
-     * @param Request $request
-     * @param Model $model
      * @return array Response data
      */
     public function save(Request $request, Model $model): array;

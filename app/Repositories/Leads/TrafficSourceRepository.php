@@ -56,7 +56,7 @@ class TrafficSourceRepository implements ImportRepositoryInterface, SettingsRepo
     }
 
     /**
-     * Implementation of SettingsRepositoryInterface
+     * Implementation of SettingsRepositoryInterface.
      */
     public function getQuery(): Builder
     {
@@ -64,7 +64,7 @@ class TrafficSourceRepository implements ImportRepositoryInterface, SettingsRepo
     }
 
     /**
-     * Implementation of SettingsRepositoryInterface
+     * Implementation of SettingsRepositoryInterface.
      */
     public function save(Request $request, Model $model): array
     {
@@ -72,7 +72,7 @@ class TrafficSourceRepository implements ImportRepositoryInterface, SettingsRepo
     }
 
     /**
-     * Implementation of SettingsRepositoryInterface
+     * Implementation of SettingsRepositoryInterface.
      */
     public function getDefaultSortField(): string
     {

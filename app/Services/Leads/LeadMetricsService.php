@@ -6,7 +6,7 @@ use App\Models\Leads\Convertion;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
- * Lead Metrics Service
+ * Lead Metrics Service.
  *
  * Handles all metrics calculations, averages, CPL computations, and diff calculations.
  * Extracted from LeadApiRepository to comply with SonarCube standards.
@@ -227,7 +227,7 @@ class LeadMetricsService
             'calls' => $totals_convertions_c->calls + $totals_convertions_s->calls,
             'converted' => $totals_convertions_c->converted + $totals_convertions_s->converted,
             'answered' => $totals_convertions_c->answered + $totals_convertions_s->answered,
-            'unique_calls' => $totals_convertions_c->unique_calls + $totals_convertions_s->unique_calls
+            'unique_calls' => $totals_convertions_c->unique_calls + $totals_convertions_s->unique_calls,
         ];
         $total_leads = (object) ['leads' => $out_count, 'cpl' => $out_cpl];
 
@@ -263,7 +263,7 @@ class LeadMetricsService
             'calls' => $totals_convertions_c->calls + $totals_convertions_s->calls,
             'converted' => $totals_convertions_c->converted + $totals_convertions_s->converted,
             'answered' => $totals_convertions_c->answered + $totals_convertions_s->answered,
-            'unique_calls' => $totals_convertions_c->unique_calls + $totals_convertions_s->unique_calls
+            'unique_calls' => $totals_convertions_c->unique_calls + $totals_convertions_s->unique_calls,
         ];
         $total_leads = (object) ['leads' => $out_count, 'cpl' => $out_cpl];
 
@@ -291,7 +291,7 @@ class LeadMetricsService
             'profit' => $profit,
             'leads' => $leads,
             'answered' => $answered,
-            'unique_calls' => $unique_calls
+            'unique_calls' => $unique_calls,
         ];
 
         return $this->setAverage($var, 'average', $total_leads->cpl, $totals_convertions->cpl);
@@ -318,7 +318,7 @@ class LeadMetricsService
             'converted' => $converted,
             'profit' => $profit,
             'leads' => $leads,
-            'answered' => $answered
+            'answered' => $answered,
         ];
 
         return $this->setAverage($var, 'totals_avg', $total_leads->cpl, $totals_convertions->cpl);
@@ -365,6 +365,8 @@ class LeadMetricsService
 
     /**
      * Calculate diff between current and previous period.
+     * @param mixed|null $campaign
+     * @param mixed|null $call
      */
     public function calculateDiff(string $start, string $end, array $totals, $campaign = null, $call = null): array
     {
@@ -391,6 +393,8 @@ class LeadMetricsService
 
     /**
      * Calculate diff for MassNexus metrics.
+     * @param mixed|null $campaign
+     * @param mixed|null $call
      */
     public function calculateDiffMn(string $start, string $end, array $totals, $campaign = null, $call = null): array
     {

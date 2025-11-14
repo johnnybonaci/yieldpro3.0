@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api\Leads;
 
-use App\Traits\HandlesDateRange;
 use Illuminate\Http\Request;
+use App\Traits\HandlesDateRange;
 use App\Services\Leads\LeadService;
 use App\Http\Controllers\Controller;
 use Maatwebsite\Excel\Facades\Excel;
@@ -14,7 +14,7 @@ use App\Http\Resources\Leads\CampaignDashboardCollection;
 
 /**
  * Campaign Controller - Refactored for SonarCube Quality
- * Uses HandlesDateRange trait to eliminate duplicate code
+ * Uses HandlesDateRange trait to eliminate duplicate code.
  */
 class CampaignController extends Controller
 {

@@ -349,7 +349,7 @@ class PhoneRoomRepository extends EloquentRepository implements SettingsReposito
     }
 
     /**
-     * Implementation of SettingsRepositoryInterface
+     * Implementation of SettingsRepositoryInterface.
      */
     public function getQuery(): Builder
     {
@@ -357,7 +357,7 @@ class PhoneRoomRepository extends EloquentRepository implements SettingsReposito
     }
 
     /**
-     * Implementation of SettingsRepositoryInterface
+     * Implementation of SettingsRepositoryInterface.
      */
     public function save(Request $request, Model $model): array
     {
@@ -365,7 +365,7 @@ class PhoneRoomRepository extends EloquentRepository implements SettingsReposito
     }
 
     /**
-     * Implementation of SettingsRepositoryInterface
+     * Implementation of SettingsRepositoryInterface.
      */
     public function getDefaultSortField(): string
     {

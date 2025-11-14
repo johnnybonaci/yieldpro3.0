@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\Leads;
 
 use Carbon\Carbon;
-use App\Traits\HandlesDateRange;
 use Illuminate\Http\Request;
+use App\Traits\HandlesDateRange;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Calls\CallsApiRequest;
@@ -14,7 +14,7 @@ use App\Http\Resources\Leads\PhoneRoomCollection;
 
 /**
  * Phone Room Leads Controller - Refactored for SonarCube Quality
- * Uses HandlesDateRange trait to eliminate duplicate code
+ * Uses HandlesDateRange trait to eliminate duplicate code.
  */
 class PhoneRoomController extends Controller
 {

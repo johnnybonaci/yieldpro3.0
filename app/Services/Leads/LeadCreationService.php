@@ -2,7 +2,6 @@
 
 namespace App\Services\Leads;
 
-use Carbon\Carbon;
 use App\Models\Leads\Pub;
 use App\Models\Leads\Lead;
 use Illuminate\Support\Arr;
@@ -17,7 +16,7 @@ use App\Repositories\Leads\PubRepository;
 use App\Repositories\Leads\JornayaLeadRepository;
 
 /**
- * Lead Creation Service
+ * Lead Creation Service.
  *
  * Handles all lead creation, resource building, and validation logic.
  * Extracted from LeadApiRepository to comply with SonarCube standards.
@@ -210,6 +209,7 @@ class LeadCreationService
 
     /**
      * Get pub list ID from pub ID.
+     * @param mixed $pub_id
      */
     public function getPubId($pub_id): int
     {
